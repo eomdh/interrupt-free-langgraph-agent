@@ -29,7 +29,16 @@ curl localhost:8000/threads/demo   # 대화가 그대로 있다
 
 복원 코드는 없다. 질문이 특수 상태가 아니라 그냥 `AIMessage`라 체크포인터가 대화를 통째로 들고 있고, 앱은 아무것도 기억하지 않는다.
 
-> LLM은 아직 **데모 응답**이다. 정해진 답을 돌려주는 목이 실제 클라이언트 자리를 채우고 있어서, 흐름과 복원은 확인되지만 글의 품질은 아직 볼 게 없다.
+기본은 **목 모드**다. 키 없이 흐름·게이트·복원이 전부 돈다. 대신 글은 정해진 응답이라 품질을 볼 게 없다.
+
+### 실제 모델 붙이기
+
+```bash
+cp .env.example .env      # LLM_MODE=openai + 키·모델 채우기
+docker compose up --build
+```
+
+OpenAI 호환이면 무엇이든 된다 — `OPENAI_BASE_URL`만 바꾸면 OpenRouter·OpenAI·Groq·Ollama로 옮겨간다. 제공자별 SDK를 안 쓴 이유다. 키나 모델이 비어 있으면 **기동 시점에** 막는다. 첫 호출까지 가서 터지면 이미 사용자가 대화를 시작한 뒤라서.
 
 ## 왜
 
@@ -48,7 +57,7 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 - 허위 차단 — 근거를 확인 못 한 초안은 상한에 닿아도 내보내지 않는다. HTTP 응답에도 안 싣는다
 - 무상태 앱 + Postgres 체크포인터 — 재시작해도 대화가 남는다
 
-실제 LLM 클라이언트와 프론트(노드 진행 스텝퍼)는 아직이다.
+프론트(노드 진행 스텝퍼)와 진행 스트림(SSE)은 아직이다.
 
 읽어볼 만한 곳은 [`tests/test_consent_gate.py`](tests/test_consent_gate.py)다. 이 앱이 막으려는 실패가 뭔지 거기 다 있다.
 
