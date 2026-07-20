@@ -31,15 +31,14 @@ class Achievement(TypedDict, total=False):
 
 
 def reset_or_add(current: int, update: int | None) -> int:
-    """카운터 reducer. `None`이 오면 0으로 리셋한다.
+    """재작성 카운터 reducer. `None`은 값이 아니라 리셋 신호다.
 
-    `operator.add`만 쓰면 값을 **줄일 수 없다.** 항목이 바뀔 때 재작성 횟수를
-    되돌리지 못해서, 두 번째 항목이 시작부터 상한(`MAX_REVISE`)에 걸린 채로
-    출발한다. 원본에서 실제로 밟은 함정이라 회귀 테스트로 묶어 둔다.
-
-    TODO(구현): `update is None`이면 0, 아니면 `current + update`.
+    `operator.add`로는 값을 줄일 수 없어서, 항목이 바뀌어도 카운터가 0으로
+    안 돌아간다. 변화가 없을 땐 노드가 키 자체를 반환하지 않는다.
     """
-    raise NotImplementedError
+    if update is None:
+        return 0
+    return current + update
 
 
 class ReviewState(TypedDict):
