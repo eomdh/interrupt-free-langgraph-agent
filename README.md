@@ -3,9 +3,9 @@
 `interrupt()` 없이 짠 LangGraph 대화 에이전트. **매 POST가 한 번의 실행으로 끝나고, 질문은 그냥 `AIMessage`로 남는다.**
 
 ```
-POST #1  START → router → interview  → AIMessage("그 수치는 어떻게 측정했나요?")  → END
-POST #2  START → router → interview  → AIMessage("본인 기여는 어디까지였나요?")   → END
-POST #3  START → router → draft ⇄ tag → AIMessage(초안)                          → END
+POST #1  START → router → interview   → AIMessage("그 수치는 어떻게 측정했나요?")  → END
+POST #2  START → router → interview   → AIMessage("본인 기여는 어디까지였나요?")   → END
+POST #3  START → router → draft ⇄ tag → AIMessage(초안)                      → END
 ```
 
 ## 왜
