@@ -57,4 +57,6 @@ class ReviewState(TypedDict):
     revise_count: Annotated[int, reset_or_add]
 
     #: 액션 칩이 실어 보낸 의도. 분류는 건너뛰어도 게이트는 통과해야 한다(ADR 0002).
+    #: ⚠️ 이 필드는 안 덮으면 지난 턴 값이 남는다. **매 턴 명시해서 넣어야 한다** —
+    #: 칩을 안 눌렀으면 `None`으로. 안 그러면 지난 칩이 게이트를 다시 연다.
     client_intent: Intent | None
