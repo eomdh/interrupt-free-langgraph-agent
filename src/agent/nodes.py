@@ -26,13 +26,27 @@ def _last_user_text(state: ReviewState) -> str:
     return ""
 
 
+def _strip_fence(raw: str) -> str:
+    """```json 펜스를 벗긴다.
+
+    "JSON으로만 답하라"고 해도 마크다운으로 감싸는 모델이 많다. 모델을
+    갈아끼울 수 있는 설계(`OPENAI_BASE_URL`)라 특정 모델의 습관에 기대지 않는다.
+    """
+    text = raw.strip()
+    if not text.startswith("```"):
+        return text
+    body = text.removeprefix("```")
+    _, _, body = body.partition("\n")  # ```json 같은 언어 태그 줄을 버린다
+    return body.removesuffix("```").strip()
+
+
 def _loads(raw: str, default):
     """LLM 출력을 JSON으로 읽는다. 타입이 안 맞아도 기본값으로 떨어진다.
 
     모델이 스키마를 지킨다는 보장이 없다. 파싱은 실패할 수 있는 일로 다룬다.
     """
     try:
-        value = json.loads(raw)
+        value = json.loads(_strip_fence(raw))
     except (json.JSONDecodeError, TypeError):
         return default
     return value if isinstance(value, type(default)) else default
@@ -139,7 +153,17 @@ _DRAFT = """아래 재료로 성과 리뷰 초안을 써라.
 직무: {role} / 기간: {period}
 성과: {achievements}
 {hint}
-초안 본문만 출력하라."""
+
+규칙:
+- 주어진 성과에 없는 사실을 쓰지 마라. 협업·교육·모니터링·배포처럼 그럴듯한
+  내용이라도 재료에 없으면 넣지 않는다.
+- 재료가 빈약하면 짧게 써라. 분량을 채우려고 지어내지 마라.
+- 수치는 재료에 있는 것만 쓴다.
+
+출력 형식:
+- 사람이 인사 시스템에 그대로 붙여넣을 본문만 낸다.
+- 규칙을 지켰다는 보고, 자기 평가, 머리말·맺음말을 쓰지 마라.
+- STAR 항목 이름(상황/업무/실행/결과)을 소제목으로 노출하지 말고 산문으로 녹여라."""
 
 
 def make_draft(llm: LLM) -> NodeFn:
@@ -171,10 +195,16 @@ def make_draft(llm: LLM) -> NodeFn:
     return draft
 
 
-_TAG = """아래 초안을 5축으로 채점하라. 각 축은 true 또는 false.
-축: 구체성 · 기여도 · 문제해결 · 정량성 · 과장허위
-과장허위는 "입력 성과에 없는 사실이 초안에 없다"가 true다.
-JSON 객체로만 답하라.
+_TAG = """아래 초안을 5축으로 채점하라. **true = 통과, false = 미달**이다.
+
+- 구체성: 무엇을 했는지 두루뭉술하지 않고 구체적이다
+- 기여도: 본인이 한 일이 드러난다
+- 문제해결: 어떤 문제를 어떻게 풀었는지 보인다
+- 정량성: 수치나 규모가 들어 있다
+- 과장허위: **초안의 모든 문장이 입력 성과로 뒷받침된다**
+  (입력에 없는 내용이 하나라도 있으면 false)
+
+JSON 객체로만 답하라. 예: {{"구체성": true, "기여도": true, "문제해결": true, "정량성": false, "과장허위": true}}
 
 입력 성과: {achievements}
 초안: {draft}"""
