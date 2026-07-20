@@ -1,9 +1,8 @@
 """운영 기동점 — `uvicorn agent.main:app`.
 
-지금은 **데모 모드로만 뜬다.** 실제 LLM 클라이언트는 아직 없고, 정해진
-응답을 돌려주는 목이 그 자리를 채운다. 그래도 이 앱이 증명하려는 것 —
-POST 한 번이 한 턴이고, 상태는 Postgres에만 있고, 재시작해도 대화가
-남는다 — 는 그대로 확인된다.
+`LLM_MODE`가 두 갈래를 가른다. 기본값 `fake`는 키 없이 흐름과 복원을
+확인하는 경로이고(관리 규약 §8.2), `openai`는 실제 모델을 부른다.
+목 모드는 임시방편이 아니라 **클론한 사람이 밟는 기본 경로**다.
 """
 
 from contextlib import asynccontextmanager
@@ -13,7 +12,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from agent.api import create_app
 from agent.graph import build_graph
-from agent.llm import FakeLLM
+from agent.llm import LLM, FakeLLM, OpenAICompatibleLLM
 from agent.settings import Settings
 
 settings = Settings()
@@ -33,16 +32,32 @@ DEMO_RESPONSES = {
 }
 
 
+def build_llm() -> LLM:
+    """설정이 고른 LLM. 검증은 `Settings`가 기동 시점에 이미 끝냈다."""
+    if settings.llm_mode == "fake":
+        return FakeLLM(DEMO_RESPONSES)
+    return OpenAICompatibleLLM(
+        base_url=settings.openai_base_url,
+        api_key=settings.openai_api_key,
+        model=settings.llm_model,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Postgres 체크포인터를 열고 그래프를 조립한다.
 
     `setup()`이 체크포인트 테이블을 만든다. 이미 있으면 그냥 지나간다.
     """
+    llm = build_llm()
     async with AsyncPostgresSaver.from_conn_string(settings.database_url) as checkpointer:
         await checkpointer.setup()
-        app.state.graph = build_graph(FakeLLM(DEMO_RESPONSES), checkpointer)
-        yield
+        app.state.graph = build_graph(llm, checkpointer)
+        try:
+            yield
+        finally:
+            if isinstance(llm, OpenAICompatibleLLM):
+                await llm.aclose()
 
 
 app = create_app(lifespan=lifespan)
