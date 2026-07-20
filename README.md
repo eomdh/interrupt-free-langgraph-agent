@@ -18,7 +18,8 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 
 ## 상태
 
-구현 중. 그래프 뼈대와 실패하는 스펙까지.
+구현 중. 라우터·게이트·self-eval 분기까지 동작하고 테스트로 묶여 있다.
+워커 노드(LLM 호출)와 FastAPI·프론트는 아직이다.
 
 ## 개발
 
