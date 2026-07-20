@@ -8,7 +8,7 @@
                     ├→ interview     → END
                     ├→ propose_draft → END
                     ├→ draft ⇄ tag ─┬→ deliver → END
-                    │                └→ blocked → END
+                    │               └→ blocked → END
                     ├→ finalize      → END
                     └→ respond       → END
 """
