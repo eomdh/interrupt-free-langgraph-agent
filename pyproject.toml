@@ -1,0 +1,39 @@
+[project]
+name = "interrupt-free-langgraph-agent"
+version = "0.1.0"
+description = "interrupt() 없이 짠 LangGraph 대화 에이전트 — 매 POST=1턴, 질문은 AIMessage로."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Deokhyeon Eom", email = "edh9692@gmail.com" }]
+keywords = ["langgraph", "langchain", "fastapi", "llm-agent", "sse", "self-eval"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
