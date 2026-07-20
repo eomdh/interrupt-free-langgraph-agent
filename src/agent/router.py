@@ -14,17 +14,23 @@ from agent.state import ReviewState
 
 def profile_ok(state: ReviewState) -> bool:
     """온보딩이 끝났나 — 직무와 평가 기간이 둘 다 있나."""
-    raise NotImplementedError
+    if not state["profile"]:
+        return False
+    return bool(state["profile"].get("role") and state["profile"].get("period"))
 
 
 def has_achievements(state: ReviewState) -> bool:
     """초안을 쓸 재료가 있나 — 성과가 하나라도 잡혔나."""
-    raise NotImplementedError
+    return bool(state["achievements"])
 
 
 def has_draft(state: ReviewState) -> bool:
-    """확정할 대상이 있나 — 초안이 존재하나."""
-    raise NotImplementedError
+    """확정할 대상이 있나 — 초안이 존재하나.
+
+    빈 문자열은 초안으로 치지 않는다. 내용이 없는 걸 확정 가능한 상태로
+    두면 안 된다.
+    """
+    return bool(state["draft"])
 
 
 def is_passing_tags(tags: dict | None) -> bool:
@@ -44,13 +50,25 @@ def is_passing_tags(tags: dict | None) -> bool:
 def resolve_intent(state: ReviewState) -> Intent:
     """이번 턴의 의도를 정한다.
 
-    `client_intent`가 있으면 그걸 쓰고(액션 칩 — LLM 분류 우회), 없으면
-    마지막 사용자 발화를 LLM으로 분류한다. 분류가 애매하면 `continue`로
-    떨어뜨려 진행 단계가 결정하게 한다.
+    액션 칩이 실어 보낸 `client_intent`가 최우선이다. 분류를 건너뛰므로
+    LLM이 오분류해도 사용자가 언제나 라우터를 우회할 수 있다(ADR 0002).
 
-    TODO(구현): 액션 칩 우선, 그다음 LLM 분류, 실패 시 `continue`.
+    칩이 없으면 원래는 마지막 발화를 LLM으로 분류한다. 아직 LLM 클라이언트가
+    없어서 지금은 `continue`로 떨어뜨린다 — 분류 실패 시의 폴백과 같은
+    목적지라, 나중에 분류를 이 사이에 끼워 넣어도 계약이 안 바뀐다.
     """
-    raise NotImplementedError
+    if state["client_intent"] is not None:
+        return state["client_intent"]
+    return "continue"
+
+
+def _progress(state: ReviewState) -> Node:
+    """게이트에 막혔을 때 어디로 보낼까 — 게이트를 충족시키는 방향으로.
+
+    `respond`로 떨구면 사용자는 왜 막혔는지 모른 채 멈춘다. 재료가 없으면
+    더 캐묻고, 있으면 초안을 제안한다. 제안까지만 하고 넘어가지는 않는다.
+    """
+    return "propose_draft" if has_achievements(state) else "interview"
 
 
 def route_from_router(state: ReviewState) -> Node:
@@ -69,7 +87,32 @@ def route_from_router(state: ReviewState) -> Node:
 
     2·3번이 동의 게이트다. 여기서 의도가 없는데 넘어가면 에이전트가
     사용자를 앞지른 것이고, 그건 이 앱이 막으려는 실패다(ADR 0002).
-
-    TODO(구현): 위 계약을 그대로. 게이트를 의도보다 먼저 확인할 것.
     """
-    raise NotImplementedError
+    # 온보딩 검사가 맨 위여야 한다. 아래로 내리면 온보딩도 안 한 사용자가
+    # 액션 칩으로 write_now를 보내 초안까지 뛸 수 있다.
+    if not profile_ok(state):
+        return "onboard"
+
+    intent = resolve_intent(state)
+
+    # 의도와 게이트를 둘 다 본다. 의도만 보면 재료 없이 초안을 쓰고,
+    # 게이트만 보면 사용자를 앞지른다.
+    if intent == "write_now":
+        return "draft" if has_achievements(state) else "interview"
+
+    if intent == "proceed":
+        return "finalize" if has_draft(state) else _progress(state)
+
+    if intent == "revise":
+        return "draft" if has_draft(state) else _progress(state)
+
+    if intent == "provide_info":
+        return "analyze"
+
+    if intent == "set_questions":
+        return "interview"
+
+    if intent == "continue":
+        return _progress(state)
+
+    return "respond"
