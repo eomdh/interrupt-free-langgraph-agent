@@ -8,7 +8,7 @@
 조작된 `client_intent`가 들어와도 상태가 안 맞으면 못 간다(ADR 0002).
 """
 
-from agent.intents import AXES, Intent, Node
+from agent.intents import AXES, HALLUCINATION_AXIS, Intent, Node
 from agent.state import ReviewState
 
 
@@ -45,6 +45,17 @@ def is_passing_tags(tags: dict | None) -> bool:
     if tags is None:
         return False
     return all(tags.get(axis) is True for axis in AXES)
+
+
+def passes_hallucination_gate(tags: dict | None) -> bool:
+    """과장·허위 축만 따로 본다.
+
+    품질 축은 상한에서 미달인 채로 내보낼 수 있지만 이 축은 아니다. 그래서
+    `is_passing_tags`와 별개로 물어볼 수 있어야 한다(ADR 0005).
+    """
+    if tags is None:
+        return False
+    return tags.get(HALLUCINATION_AXIS) is True
 
 
 def resolve_intent(state: ReviewState) -> Intent:

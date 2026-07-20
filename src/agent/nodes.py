@@ -60,6 +60,16 @@ async def finalize(state: ReviewState) -> dict:
     raise NotImplementedError
 
 
+async def blocked(state: ReviewState) -> dict:
+    """허위가 안 걷혀 초안을 막는다(ADR 0005).
+
+    초안 대신 **어느 문장의 근거를 확인 못 했는지**를 돌려주고, 그 부분을
+    사용자가 채우도록 유도한다. 결과물이 없는 채로 끝나는 게 허위가 섞인
+    결과물보다 낫다.
+    """
+    raise NotImplementedError
+
+
 async def respond(state: ReviewState) -> dict:
     """잡담 등 — 대화만 이어간다."""
     raise NotImplementedError

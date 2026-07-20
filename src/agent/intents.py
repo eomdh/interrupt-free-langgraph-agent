@@ -21,9 +21,11 @@ Node = Literal[
     "onboard",  # 직무·평가 기간을 받는다
     "analyze",  # 서술에서 성과 조각을 뽑는다
     "interview",  # 부족한 축을 되묻는다
+    "propose_draft",  # 초안을 쓰자고 제안만 한다
     "draft",  # 초안을 쓴다
     "tag",  # 5축으로 채점한다
     "finalize",  # 확정한다
+    "blocked",  # 허위가 안 걷혀 초안을 막는다(ADR 0005)
     "respond",  # 그 외 — 대화만 이어간다
 ]
 
@@ -31,6 +33,9 @@ Node = Literal[
 Axis = Literal["구체성", "기여도", "문제해결", "정량성", "과장허위"]
 
 AXES: tuple[Axis, ...] = ("구체성", "기여도", "문제해결", "정량성", "과장허위")
+
+#: 다른 넷과 성격이 달라 따로 본다. 품질 축은 상한에서 양보하지만 이 축은 안 한다.
+HALLUCINATION_AXIS: Axis = "과장허위"
 
 #: 되돌리기 비싼 전이. 이 노드로 가려면 대응하는 의도가 반드시 있어야 한다(ADR 0002).
 CONSENT_REQUIRED: dict[Node, Intent] = {
