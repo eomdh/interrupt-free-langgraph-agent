@@ -60,3 +60,20 @@ class ReviewState(TypedDict):
     #: ⚠️ 이 필드는 안 덮으면 지난 턴 값이 남는다. **매 턴 명시해서 넣어야 한다** —
     #: 칩을 안 눌렀으면 `None`으로. 안 그러면 지난 칩이 게이트를 다시 연다.
     client_intent: Intent | None
+
+
+def new_thread_state() -> ReviewState:
+    """새 스레드의 초기 상태.
+
+    LangGraph는 안 넘긴 키를 아예 만들지 않는다. 라우터가 `state["profile"]`처럼
+    직접 인덱싱하므로, 첫 턴에는 전 필드를 채워 넣어야 `KeyError`가 안 난다.
+    """
+    return {
+        "messages": [],
+        "profile": {},
+        "achievements": [],
+        "draft": None,
+        "tags": None,
+        "revise_count": 0,
+        "client_intent": None,
+    }
