@@ -8,7 +8,7 @@
 조작된 `client_intent`가 들어와도 상태가 안 맞으면 못 간다(ADR 0002).
 """
 
-from agent.intents import Intent, Node
+from agent.intents import AXES, Intent, Node
 from agent.state import ReviewState
 
 
@@ -28,17 +28,17 @@ def has_draft(state: ReviewState) -> bool:
 
 
 def is_passing_tags(tags: dict | None) -> bool:
-    """5축이 전부 통과인가.
+    """5축이 전부 통과인가. 판정 불가는 미달로 본다.
 
-    fail-safe: 축이 누락됐거나 값이 불량이면 **미달로 정규화한다.**
-    "판정 불가 = 미달"이 이 앱의 기본값이다 — 애매하면 통과시키지 않는다.
+    `tags`가 아니라 `AXES`를 순회한다. 모델이 축을 빠뜨리고 답해도 "없으니
+    통과"가 되지 않게, 5축 전부를 기준으로 삼는다.
 
-    `과장허위`는 다른 넷과 성격이 다르다. 이 축이 미달이면 나머지가 전부
-    통과여도 재작성으로 되돌린다(ADR 0004의 하드 게이트).
-
-    TODO(구현): `AXES` 전부를 순회하며 `tags.get(axis) is True`인지 확인.
+    값은 `is True`로만 통과시킨다. `1`이나 `"통과"` 같은 참 같은 값을
+    받아주면 fail-safe가 뚫린다 — 파이썬에서 `1 == True`는 참이다.
     """
-    raise NotImplementedError
+    if tags is None:
+        return False
+    return all(tags.get(axis) is True for axis in AXES)
 
 
 def resolve_intent(state: ReviewState) -> Intent:
