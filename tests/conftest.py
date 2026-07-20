@@ -1,6 +1,48 @@
+import json
+
 import pytest
 
+from agent.intents import AXES
+from agent.llm import FakeLLM
 from agent.state import ReviewState
+
+ACHIEVEMENT = {
+    "title": "결제 지연 개선",
+    "situation": "피크 시간대 결제 p95가 1.2초였다",
+    "task": "지연을 줄인다",
+    "action": "N+1 조회를 배치로 묶고 인덱스를 다시 잡았다",
+    "result": "p95 340ms",
+}
+
+
+@pytest.fixture
+def tags_json():
+    """5축 채점 결과를 LLM 출력 모양(JSON 문자열)으로."""
+
+    def _make(**overrides) -> str:
+        scored = {axis: True for axis in AXES} | overrides
+        return json.dumps(scored, ensure_ascii=False)
+
+    return _make
+
+
+@pytest.fixture
+def make_llm(tags_json):
+    """전 구간을 돌리기에 충분한 목. 축별 판정만 갈아끼우면 분기가 바뀐다."""
+
+    def _make(**overrides) -> FakeLLM:
+        responses = {
+            "onboard": json.dumps({"role": "백엔드 엔지니어", "period": "2026 상반기"}),
+            "analyze": json.dumps([ACHIEVEMENT], ensure_ascii=False),
+            "interview": "그 수치는 어떻게 측정했나요?",
+            "draft": "2026 상반기에 결제 지연을 개선했다. p95를 1.2초에서 340ms로 줄였다.",
+            "tag": tags_json(),
+            "blocked": "매출 30% 증가",
+            "respond": "네, 편하게 말씀해주세요.",
+        }
+        return FakeLLM(responses | overrides)
+
+    return _make
 
 
 @pytest.fixture

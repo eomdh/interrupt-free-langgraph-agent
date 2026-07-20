@@ -1,0 +1,118 @@
+"""HTTP 경계 — POST 한 번이 한 턴이고, GET 하면 대화가 그대로 있다.
+
+체크포인터는 `MemorySaver`를 쓴다. 운영은 Postgres지만(`agent.main`), 여기서
+검증하는 건 **저장소 종류가 아니라 앱이 무상태라는 것**이다. 요청 사이에
+아무것도 안 들고 있어야 GET이 저장소만 보고 대화를 복원할 수 있다.
+"""
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from langgraph.checkpoint.memory import MemorySaver
+
+from agent.api import create_app
+from agent.graph import build_graph
+
+
+@pytest.fixture
+def client(make_llm):
+    checkpointer = MemorySaver()
+    app = create_app(build_graph(make_llm(), checkpointer))
+    transport = ASGITransport(app=app)
+    return AsyncClient(transport=transport, base_url="http://test")
+
+
+@pytest.fixture
+def blocked_client(make_llm, tags_json):
+    """허위가 안 걷히는 목 — 초안이 막히는 경로."""
+    app = create_app(build_graph(make_llm(tag=tags_json(과장허위=False)), MemorySaver()))
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+async def _turn(client, thread: str, text: str, intent: str | None = None) -> dict:
+    body: dict = {"text": text}
+    if intent is not None:
+        body["client_intent"] = intent
+    response = await client.post(f"/threads/{thread}/turns", json=body)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def test_첫_POST가_스레드를_연다(client):
+    async with client:
+        body = await _turn(client, "t1", "성과 리뷰 써야 해")
+
+    assert body["thread_id"] == "t1"
+    assert [m["role"] for m in body["messages"]] == ["user", "assistant"]
+
+
+async def test_GET이_대화를_그대로_복원한다(client):
+    """복원 코드가 따로 없다. 질문이 그냥 메시지라 읽으면 그게 화면이다(ADR 0001)."""
+    async with client:
+        await _turn(client, "t1", "리뷰 써야 해")
+        await _turn(client, "t1", "결제 지연을 줄였어요", intent="provide_info")
+
+        response = await client.get("/threads/t1")
+
+    assert response.status_code == 200
+    messages = response.json()["messages"]
+    assert [m["role"] for m in messages] == ["user", "assistant", "user", "assistant"]
+
+
+async def test_없는_스레드는_404(client):
+    async with client:
+        response = await client.get("/threads/없음")
+    assert response.status_code == 404
+
+
+async def test_스레드는_서로_섞이지_않는다(client):
+    async with client:
+        await _turn(client, "a", "리뷰 써야 해")
+        await _turn(client, "b", "나도 써야 해")
+        first = await client.get("/threads/a")
+
+    assert len(first.json()["messages"]) == 2
+
+
+async def test_액션_칩을_생략하면_지난_칩이_남지_않는다(client):
+    """`client_intent`는 요청 스키마가 매 턴 `None`으로 채운다.
+
+    안 그러면 write_now 칩이 상태에 남아, 다음 평범한 메시지에도 초안이
+    다시 생성된다.
+    """
+    async with client:
+        await _turn(client, "t1", "리뷰 써야 해")
+        await _turn(client, "t1", "결제 지연을 줄였어요", intent="provide_info")
+        await _turn(client, "t1", "초안 써줘", intent="write_now")
+
+        # 칩 없이 그냥 한마디. 초안이 또 생성되면 안 된다.
+        body = await _turn(client, "t1", "고마워")
+
+    assert "이대로 확정할까요?" not in body["messages"][-1]["content"]
+
+
+async def test_막힌_초안은_응답에_실리지_않는다(blocked_client):
+    """`draft`를 내려주지 않는 이유 — 막은 초안을 클라이언트가 읽으면
+    ADR 0005가 무의미해진다."""
+    async with blocked_client:
+        await _turn(blocked_client, "t1", "리뷰 써야 해")
+        await _turn(blocked_client, "t1", "결제 지연을 줄였어요", intent="provide_info")
+        body = await _turn(blocked_client, "t1", "초안 써줘", intent="write_now")
+
+    assert "draft" not in body
+    assert "내보내지 않았습니다" in body["messages"][-1]["content"]
+    assert body["tags"]["과장허위"] is False  # 왜 막혔는지는 보여준다
+
+
+async def test_빈_입력은_거부한다(client):
+    async with client:
+        response = await client.post("/threads/t1/turns", json={"text": ""})
+    assert response.status_code == 422
+
+
+async def test_모르는_의도는_거부한다(client):
+    """`Intent`가 Literal이라 스키마 단계에서 걸린다."""
+    async with client:
+        response = await client.post(
+            "/threads/t1/turns", json={"text": "확정", "client_intent": "그냥_해줘"}
+        )
+    assert response.status_code == 422
