@@ -24,6 +24,7 @@ Node = Literal[
     "propose_draft",  # 초안을 쓰자고 제안만 한다
     "draft",  # 초안을 쓴다
     "tag",  # 5축으로 채점한다
+    "deliver",  # 채점을 통과한 초안을 내보낸다
     "finalize",  # 확정한다
     "blocked",  # 허위가 안 걷혀 초안을 막는다(ADR 0005)
     "respond",  # 그 외 — 대화만 이어간다

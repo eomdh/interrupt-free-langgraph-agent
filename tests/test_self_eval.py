@@ -1,16 +1,15 @@
 """self-eval 루프 — 언제 다시 쓰고 언제 멈추는가(ADR 0003)."""
 
 import pytest
-from langgraph.graph import END
 
 from agent.graph import route_after_tag
 from agent.intents import AXES, MAX_REVISE
 from agent.router import is_passing_tags, passes_hallucination_gate
 
 
-def test_전_축_통과면_끝낸다(make_state, passing):
+def test_전_축_통과면_내보낸다(make_state, passing):
     state = make_state(tags=passing, revise_count=0)
-    assert route_after_tag(state) == END
+    assert route_after_tag(state) == "deliver"
 
 
 def test_미달이고_상한_전이면_다시_쓴다(make_state, passing):
@@ -21,7 +20,7 @@ def test_미달이고_상한_전이면_다시_쓴다(make_state, passing):
 def test_상한에_도달하면_품질_미달은_내보낸다(make_state, passing):
     """억지로 통과시키지 않되, 결과물은 준다. 무엇이 부족한지 함께 알린다."""
     state = make_state(tags=passing | {"정량성": False}, revise_count=MAX_REVISE)
-    assert route_after_tag(state) == END
+    assert route_after_tag(state) == "deliver"
 
 
 def test_과장허위만_미달이어도_되돌린다(make_state, passing):
