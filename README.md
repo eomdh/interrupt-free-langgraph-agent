@@ -10,7 +10,26 @@ POST #2  START → router → interview   → AIMessage("본인 기여는 어디
 POST #3  START → router → draft ⇄ tag → AIMessage(초안)                      → END
 ```
 
-> 설계 흐름이다. 워커 노드가 아직 비어 있어 앱으로는 돌지 않는다 — [상태](#상태) 참조.
+## 돌려보기
+
+```bash
+docker compose up --build          # app + postgres
+```
+
+`interrupt()`를 안 쓴 값어치는 **앱을 죽여보면** 드러난다.
+
+```bash
+curl -X POST localhost:8000/threads/demo/turns \
+     -H 'content-type: application/json' -d '{"text":"성과 리뷰 써야 해"}'
+
+docker compose restart app         # 프로세스 메모리를 날린다
+
+curl localhost:8000/threads/demo   # 대화가 그대로 있다
+```
+
+복원 코드는 없다. 질문이 특수 상태가 아니라 그냥 `AIMessage`라 체크포인터가 대화를 통째로 들고 있고, 앱은 아무것도 기억하지 않는다.
+
+> LLM은 아직 **데모 응답**이다. 정해진 답을 돌려주는 목이 실제 클라이언트 자리를 채우고 있어서, 흐름과 복원은 확인되지만 글의 품질은 아직 볼 게 없다.
 
 ## 왜
 
@@ -22,13 +41,14 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 
 ## 상태
 
-구현 중. **라우팅 판단은 끝났고 테스트 44개로 묶여 있다.**
+백엔드는 끝까지 돈다. 테스트 58개.
 
 - 동의 게이트 — 에이전트가 사용자를 앞지르지 못한다. 조작된 요청도 상태 게이트를 못 뚫는다
 - 채점 fail-safe — 축이 빠지거나 값이 이상하면 전부 미달로 본다 ("판정 불가 = 미달")
-- 허위 차단 — 근거를 확인 못 한 초안은 상한에 닿아도 내보내지 않는다
+- 허위 차단 — 근거를 확인 못 한 초안은 상한에 닿아도 내보내지 않는다. HTTP 응답에도 안 싣는다
+- 무상태 앱 + Postgres 체크포인터 — 재시작해도 대화가 남는다
 
-워커 노드(LLM 호출)·FastAPI·체크포인터·프론트는 아직이다.
+실제 LLM 클라이언트와 프론트(노드 진행 스텝퍼)는 아직이다.
 
 읽어볼 만한 곳은 [`tests/test_consent_gate.py`](tests/test_consent_gate.py)다. 이 앱이 막으려는 실패가 뭔지 거기 다 있다.
 
