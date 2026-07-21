@@ -8,14 +8,17 @@
 질문이 특수 상태가 아니라 그냥 메시지라, 대화를 읽으면 그게 곧 화면이다.
 """
 
+from collections.abc import AsyncIterator
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
 from agent.intents import Intent
 from agent.state import new_thread_state
+from agent.stream import project_update, sse_frame
 
 
 class TurnRequest(BaseModel):
@@ -100,6 +103,40 @@ def create_app(graph=None, lifespan=None) -> FastAPI:
         payload = await _seeded_payload(graph, config, body)
         values = await graph.ainvoke(payload, config)
         return _view(thread_id, values)
+
+    @app.post("/threads/{thread_id}/turns/stream")
+    async def take_turn_stream(
+        thread_id: str, body: TurnRequest, request: Request
+    ) -> StreamingResponse:
+        """POST 한 번을 스트리밍으로. 노드를 밟는 과정을 흘리고 END에서 닫는다.
+
+        JSON 엔드포인트와 **같은 한 턴**이다 — 결과도 같다. 다만 그 사이의 노드
+        전환을 SSE로 중계한다. 진행 이벤트는 메타데이터만 싣고(`stream.py`),
+        초안 본문은 최종 `done`의 `ThreadView`로만 나간다(ADR 0005·0006).
+
+        스트림이 시작되면 상태 코드를 못 바꾸므로, 실행 중 오류는 `error`
+        이벤트로 내보낸다. 연결을 매단 채로 두지 않는다.
+        """
+        graph = request.app.state.graph
+        config = _config(thread_id)
+        payload = await _seeded_payload(graph, config, body)
+
+        async def events() -> AsyncIterator[str]:
+            seq = 0
+            attempt = 0
+            try:
+                async for chunk in graph.astream(payload, config, stream_mode="updates"):
+                    for node, delta in chunk.items():
+                        seq += 1
+                        if node == "draft":
+                            attempt += 1
+                        yield project_update(node, delta or {}, seq=seq, attempt=attempt)
+                snapshot = await graph.aget_state(config)
+                yield sse_frame("done", _view(thread_id, snapshot.values).model_dump())
+            except Exception as error:  # noqa: BLE001 — 스트림 중 오류는 삼키지 말고 이벤트로
+                yield sse_frame("error", {"detail": str(error)})
+
+        return StreamingResponse(events(), media_type="text/event-stream")
 
     @app.get("/threads/{thread_id}", response_model=ThreadView)
     async def read_thread(thread_id: str, request: Request) -> ThreadView:
