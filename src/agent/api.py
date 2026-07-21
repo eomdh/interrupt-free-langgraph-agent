@@ -61,6 +61,26 @@ def _view(thread_id: str, values: dict) -> ThreadView:
     )
 
 
+async def _seeded_payload(graph, config: dict, body: TurnRequest) -> dict:
+    """이번 턴 입력을 만든다. 첫 턴이면 초기 상태를 먼저 깐다.
+
+    JSON 턴과 스트림 턴이 **같은 준비를 쓰도록** 한곳에 둔다. 여기가 갈라지면
+    두 경로가 다른 상태에서 시작해, 스트림으로 연 스레드와 POST로 연 스레드가
+    미묘하게 달라진다.
+
+    LangGraph는 안 넘긴 키를 아예 만들지 않으므로(`state.py`), 새 스레드는
+    전 필드를 채워 넣어야 라우터의 직접 인덱싱이 `KeyError`를 안 낸다.
+    """
+    payload = {
+        "messages": [HumanMessage(body.text)],
+        "client_intent": body.client_intent,
+    }
+    snapshot = await graph.aget_state(config)
+    if not snapshot.values:
+        payload = new_thread_state() | payload
+    return payload
+
+
 def create_app(graph=None, lifespan=None) -> FastAPI:
     """앱을 만든다.
 
@@ -77,15 +97,7 @@ def create_app(graph=None, lifespan=None) -> FastAPI:
     async def take_turn(thread_id: str, body: TurnRequest, request: Request) -> ThreadView:
         graph = request.app.state.graph
         config = _config(thread_id)
-
-        payload = {
-            "messages": [HumanMessage(body.text)],
-            "client_intent": body.client_intent,
-        }
-        snapshot = await graph.aget_state(config)
-        if not snapshot.values:
-            payload = new_thread_state() | payload
-
+        payload = await _seeded_payload(graph, config, body)
         values = await graph.ainvoke(payload, config)
         return _view(thread_id, values)
 
