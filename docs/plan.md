@@ -100,3 +100,4 @@ LLM은 결정적 스텁으로 목킹, 체크포인터는 `MemorySaver`.
 
 - `fetch-sse-client` — 진행 스트림 수신에 사용 (자체 라이브러리 재사용)
 - `korean-josa-masker` — 데모 입력에 실명이 섞일 때 마스킹
+- `StyleSeed` — UI 디자인 룰과 toss 스킨 (ADR 0007. 확정값은 `web/STYLESEED.md`)
