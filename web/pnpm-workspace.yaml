@@ -1,0 +1,5 @@
+# pnpm v10+ 는 의존성의 설치 스크립트를 기본 차단한다. esbuild 는 vite·tailwind 가
+# 쓰는 번들러이고, 설치 스크립트가 플랫폼 네이티브 바이너리를 놓는 일을 한다 —
+# 막으면 dev/build 가 안 돈다. 그래서 이것만 명시적으로 허용한다.
+allowBuilds:
+  esbuild: true

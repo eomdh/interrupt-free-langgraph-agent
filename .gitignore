@@ -31,3 +31,8 @@ htmlcov/
 .claude/
 .superclaude/
 CLAUDE.md
+# StyleSeed 엔진 문서·룰 (로컬 도구. 확정값은 web/STYLESEED.md 에 잠겨 있다)
+.styleseed/
+
+# 프론트
+node_modules/

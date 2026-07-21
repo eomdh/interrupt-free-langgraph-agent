@@ -1,0 +1,94 @@
+/* StyleSeed 스킨: Toss. 한 accent + 나머지 그레이스케일.
+ * Tailwind v4 @theme → bg-accent / text-ink / border-line / rounded-ss 유틸 생성.
+ * lx-raize 검증 토큰셋 재사용(StyleSeed skins/toss/theme.css 감각의 최소 토큰).
+ */
+@theme {
+  --color-accent: #3182f6; /* Toss blue */
+  --color-accent-hover: #1b64da;
+  --color-accent-soft: #e8f1fe; /* accent 배경(칩·링) */
+  --color-ink: #191f28; /* 강조 텍스트 */
+  --color-ink-soft: #4e5968; /* 보조 텍스트 (StyleSeed: 순수 #000 금지) */
+  --color-ink-faint: #8b95a1; /* 라벨·희미한 텍스트 */
+  --color-line: #e5e8eb;
+  --color-line-soft: #eef1f4; /* 카드 내부 구분선 */
+  --color-canvas: #f2f4f6; /* 배경 */
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafb; /* 카드 안 서브 표면 */
+  --color-danger: #f04452;
+  --color-danger-soft: #fdecee;
+
+  /* 시맨틱 상태색 (accent 와 분리 — 채점/강도 전용) */
+  --color-good: #12b886;
+  --color-good-soft: #e6f7f0;
+  --color-warn: #f59f00;
+  --color-warn-soft: #fff6e5;
+
+  --radius-ss: 12px;
+
+  --font-sans:
+    Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic',
+    sans-serif;
+}
+
+/* 다크 팔레트 (토큰 값). @media(자동) + [data-theme=dark](수동 토글) 둘 다 여기서 참조. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-accent: #4b93f8;
+    --color-accent-hover: #6aa6fa;
+    --color-accent-soft: #1b2942;
+    --color-ink: #f0f2f5;
+    --color-ink-soft: #aeb6c1;
+    --color-ink-faint: #7b8593;
+    --color-line: #2b2f38;
+    --color-line-soft: #23262e;
+    --color-canvas: #131519;
+    --color-surface: #1b1e24;
+    --color-surface-2: #21242c;
+    --color-danger: #ff6070;
+    --color-danger-soft: #3a1f24;
+    --color-good: #2fcf94;
+    --color-good-soft: #14352a;
+    --color-warn: #ffb020;
+    --color-warn-soft: #3a2f14;
+  }
+}
+
+/* 수동 토글: data-theme 가 OS 미디어쿼리를 이긴다(App 이 <html data-theme> 세팅). */
+:root[data-theme='dark'] {
+  --color-accent: #4b93f8;
+  --color-accent-hover: #6aa6fa;
+  --color-accent-soft: #1b2942;
+  --color-ink: #f0f2f5;
+  --color-ink-soft: #aeb6c1;
+  --color-ink-faint: #7b8593;
+  --color-line: #2b2f38;
+  --color-line-soft: #23262e;
+  --color-canvas: #131519;
+  --color-surface: #1b1e24;
+  --color-surface-2: #21242c;
+  --color-danger: #ff6070;
+  --color-danger-soft: #3a1f24;
+  --color-good: #2fcf94;
+  --color-good-soft: #14352a;
+  --color-warn: #ffb020;
+  --color-warn-soft: #3a2f14;
+}
+:root[data-theme='light'] {
+  --color-accent: #3182f6;
+  --color-accent-hover: #1b64da;
+  --color-accent-soft: #e8f1fe;
+  --color-ink: #191f28;
+  --color-ink-soft: #4e5968;
+  --color-ink-faint: #8b95a1;
+  --color-line: #e5e8eb;
+  --color-line-soft: #eef1f4;
+  --color-canvas: #f2f4f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafb;
+  --color-danger: #f04452;
+  --color-danger-soft: #fdecee;
+  --color-good: #12b886;
+  --color-good-soft: #e6f7f0;
+  --color-warn: #f59f00;
+  --color-warn-soft: #fff6e5;
+}

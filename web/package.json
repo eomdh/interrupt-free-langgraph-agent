@@ -1,0 +1,29 @@
+{
+  "name": "interrupt-free-agent-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fetch-sse-client": "github:eomdh/fetch-sse-client#v0.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "tailwindcss": "^4.3.2",
+    "typescript": "~5.7.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.1.9"
+  }
+}
