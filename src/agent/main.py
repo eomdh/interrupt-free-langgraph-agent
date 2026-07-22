@@ -18,6 +18,10 @@ from agent.settings import Settings
 settings = Settings()
 
 DEMO_RESPONSES = {
+    # 목은 입력과 무관하게 같은 답을 준다 — 즉 **목 모드에서는 의도 분류가
+    # 동작하지 않는다.** `continue`로 두어 분류가 없던 때와 같게 만든다.
+    # 목 모드에서 초안·확정으로 넘어가려면 액션 칩을 쓰면 된다.
+    "classify": "continue",
     "onboard": '{"role": "백엔드 엔지니어", "period": "2026 상반기"}',
     "analyze": (
         '[{"title": "결제 지연 개선", "situation": "피크 시간대 결제 p95가 1.2초였다",'

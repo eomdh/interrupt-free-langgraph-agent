@@ -61,12 +61,12 @@ def passes_hallucination_gate(tags: dict | None) -> bool:
 def resolve_intent(state: ReviewState) -> Intent:
     """이번 턴의 의도를 정한다.
 
-    액션 칩이 실어 보낸 `client_intent`가 최우선이다. 분류를 건너뛰므로
-    LLM이 오분류해도 사용자가 언제나 라우터를 우회할 수 있다(ADR 0002).
+    여기 오기 전에 `classify` 노드가 이미 채워 놨다 — 칩이 있으면 그대로 두고,
+    없으면 마지막 발화를 분류해서 넣는다(ADR 0008). 그래서 이 함수는 상태만
+    읽는 순수 함수로 남는다.
 
-    칩이 없으면 원래는 마지막 발화를 LLM으로 분류한다. 아직 LLM 클라이언트가
-    없어서 지금은 `continue`로 떨어뜨린다 — 분류 실패 시의 폴백과 같은
-    목적지라, 나중에 분류를 이 사이에 끼워 넣어도 계약이 안 바뀐다.
+    비어 있으면 `continue`다. 분류가 실패했거나 모르는 라벨이 왔다는 뜻이고,
+    그때는 진행 단계가 목적지를 정한다 — **덜 나아가는 쪽으로 떨어진다.**
     """
     if state["client_intent"] is not None:
         return state["client_intent"]

@@ -86,6 +86,36 @@ async def test_동의_없이는_초안이_안_나온다(run):
     assert "초안을 써볼까요?" in last_reply(state)
 
 
+async def _gathered(llm) -> tuple[object, dict]:
+    """온보딩·성과 수집을 칩으로 밀어둔 상태. 분류는 그 턴들에서 안 불린다."""
+    graph = build_graph(llm, checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "t"}}
+
+    await graph.ainvoke(new_thread_state() | turn("리뷰 써야 해", intent="provide_info"), config)
+    await graph.ainvoke(turn("결제 지연을 줄였어요", intent="provide_info"), config)
+    return graph, config
+
+
+async def test_칩_없이_말로만_해도_초안이_나온다(make_llm):
+    """분류가 자유 서술의 의도를 채운다(ADR 0008). 칩은 지름길이지 필수가 아니다."""
+    graph, config = await _gathered(make_llm(classify="write_now"))
+
+    state = await graph.ainvoke(turn("이 정도면 됐어요, 초안 써주세요"), config)
+
+    assert state["draft"]
+    assert "이대로 확정할까요?" in last_reply(state)
+
+
+async def test_분류가_실패하면_초안으로_넘어가지_않는다(make_llm):
+    """모르는 답이 오면 `continue`로 떨어진다 — 제안까지만 하고 멈춘다."""
+    graph, config = await _gathered(make_llm(classify="도무지 모르겠음"))
+
+    state = await graph.ainvoke(turn("이 정도면 됐어요, 초안 써주세요"), config)
+
+    assert state["draft"] is None
+    assert "초안을 써볼까요?" in last_reply(state)
+
+
 async def test_채점이_미달이면_상한까지_다시_쓴다(drive, tags_json):
     """정량성만 계속 미달 — 상한에서 미달인 채로 내보낸다(ADR 0003)."""
     state, llm = await drive(tag=tags_json(정량성=False))

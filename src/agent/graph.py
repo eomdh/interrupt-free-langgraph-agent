@@ -3,14 +3,17 @@
 한 번의 `ainvoke`가 START에서 END까지 끝난다. 중간에 멈추는 지점이 없다 —
 그게 이 앱의 핵심 결정이다(ADR 0001).
 
-    START → router ─┬→ onboard       → END
-                    ├→ analyze       → END
-                    ├→ interview     → END
-                    ├→ propose_draft → END
-                    ├→ draft ⇄ tag ─┬→ deliver → END
-                    │               └→ blocked → END
-                    ├→ finalize      → END
-                    └→ respond       → END
+    START → classify → router ─┬→ onboard       → END
+                               ├→ analyze       → END
+                               ├→ interview     → END
+                               ├→ propose_draft → END
+                               ├→ draft ⇄ tag ─┬→ deliver → END
+                               │               └→ blocked → END
+                               ├→ finalize      → END
+                               └→ respond       → END
+
+`classify`는 자유 서술의 의도를 정한다. 액션 칩이 실려 오면 그 노드는 LLM을
+부르지 않고 그대로 통과한다 — 분류는 칩이 없을 때만 필요하다(ADR 0002·0008).
 """
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -69,11 +72,16 @@ def build_graph(llm: LLM, checkpointer=None):
     """
     builder = StateGraph(ReviewState)
 
+    # 분류는 매 턴의 첫 노드다. `_NODE_FACTORIES`에 안 넣는 이유는 라우터의
+    # 목적지도, END로 나가는 종착지도 아니어서다 — 넣으면 예외 처리가 는다.
+    builder.add_node("classify", nodes.make_classify(llm))
+
     for name, factory in _NODE_FACTORIES.items():
         builder.add_node(name, factory(llm))
 
-    # router는 노드가 아니라 START의 분기다 — 매 POST가 여기서 시작한다.
-    builder.add_conditional_edges(START, route_from_router, _ROUTER_TARGETS)
+    # 매 POST가 분류에서 시작해 라우터 분기로 간다. router는 노드가 아니라 분기다.
+    builder.add_edge(START, "classify")
+    builder.add_conditional_edges("classify", route_from_router, _ROUTER_TARGETS)
 
     # draft ⇄ tag 자율 루프.
     builder.add_edge("draft", "tag")

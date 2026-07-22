@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 from agent.intents import Intent
 from agent.state import new_thread_state
-from agent.stream import project_update, sse_frame
+from agent.stream import HIDDEN_NODES, project_update, sse_frame
 
 
 class TurnRequest(BaseModel):
@@ -129,6 +129,10 @@ def create_app(graph=None, lifespan=None, static_dir: Path | None = None) -> Fas
             try:
                 async for chunk in graph.astream(payload, config, stream_mode="updates"):
                     for node, delta in chunk.items():
+                        # 내부 단계는 진행이 아니다. seq를 올리기 전에 걸러서
+                        # 클라이언트가 보는 순번이 이어지게 둔다.
+                        if node in HIDDEN_NODES:
+                            continue
                         seq += 1
                         if node == "draft":
                             attempt += 1

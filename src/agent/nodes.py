@@ -12,7 +12,7 @@ from collections.abc import Awaitable, Callable
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from agent.intents import AXES
+from agent.intents import AXES, INTENTS, Intent
 from agent.llm import LLM
 from agent.state import ReviewState
 
@@ -57,6 +57,62 @@ def _shortfalls(tags: dict | None) -> list[str]:
     if not tags:
         return list(AXES)
     return [axis for axis in AXES if tags.get(axis) is not True]
+
+
+_CLASSIFY = """사용자의 마지막 발화가 무엇을 원하는지 라벨 하나로 고르라.
+
+- provide_info: 한 일·성과·맥락을 서술한다
+- set_questions: 무엇을 다룰지 정해주거나, 더 물어봐 달라고 한다
+- write_now: 지금 초안을 써달라고 한다
+- revise: 이미 있는 초안을 고쳐달라고 한다
+- proceed: 이대로 확정하자고 한다
+- chitchat: 인사·감사·잡담
+- continue: 무엇을 원하는지 분명하지 않다
+
+예)
+"결제 지연을 줄였어요" -> provide_info
+"초안 써주세요" -> write_now
+"이대로 확정할게요" -> proceed
+"수치를 더 넣어서 다시 써줘" -> revise
+"고마워요" -> chitchat
+"음..." -> continue
+
+라벨 하나만 출력하라. 설명을 붙이지 마라.
+발화: {text}"""
+
+
+def _as_intent(raw: str) -> Intent | None:
+    """분류 결과에서 라벨을 골라낸다. 못 고르면 `None`.
+
+    모델이 따옴표·마침표·군더더기를 붙여 보내는 일이 흔해서 정확히 일치하길
+    기대하지 않는다. 라벨끼리는 서로 부분 문자열이 아니라 포함 검사가 안전하다.
+
+    **모르는 답은 `None`이다.** 라우터가 그걸 `continue`로 읽고 진행 단계에
+    맡기므로, 분류 실패는 언제나 *덜 나아가는* 쪽으로 떨어진다 — 잘못 분류해서
+    동의 게이트를 여는 것보다 제자리에 서는 편이 낫다.
+    """
+    text = raw.strip().lower()
+    for intent in INTENTS:
+        if intent in text:
+            return intent
+    return None
+
+
+def make_classify(llm: LLM) -> NodeFn:
+    """자유 서술의 의도를 정한다. 매 턴의 첫 노드다.
+
+    **액션 칩이 있으면 부르지 않는다.** 사용자가 명시한 것이 분류보다 우선이고,
+    호출도 그만큼 아낀다(ADR 0002의 "분류를 건너뛴다"가 이것이다).
+    """
+
+    async def classify(state: ReviewState) -> dict:
+        if state["client_intent"] is not None:
+            return {}
+
+        raw = await llm.complete(_CLASSIFY.format(text=_last_user_text(state)), task="classify")
+        return {"client_intent": _as_intent(raw)}
+
+    return classify
 
 
 _ONBOARD = """다음 대화에서 사용자의 직무와 평가 기간을 뽑아라.

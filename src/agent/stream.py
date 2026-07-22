@@ -19,6 +19,13 @@ import json
 #: 초안 루프에 속한 노드 — 완료를 `loop` 이벤트로 알린다. 나머지는 `node` 이벤트.
 LOOP_NODES = ("draft", "tag")
 
+#: 진행으로 치지 않는 노드.
+#:
+#: `classify`는 어디로 갈지 정하는 내부 단계라, 사용자가 보는 "무슨 일을 하는
+#: 중인가"에 해당하지 않는다. 내보내면 매 턴 첫머리에 의미 없는 깜빡임이 하나씩
+#: 생기고, 스텝퍼가 매핑할 단계도 없다. 그래서 스트림 계약(ADR 0006)에서 뺀다.
+HIDDEN_NODES = frozenset({"classify"})
+
 
 def sse_frame(event: str, data: dict) -> str:
     """SSE 프레임 하나. `data`는 JSON 한 줄로 싣는다."""

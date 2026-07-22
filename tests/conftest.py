@@ -32,6 +32,10 @@ def make_llm(tags_json):
 
     def _make(**overrides) -> FakeLLM:
         responses = {
+            # 목은 고정 응답이라 진짜 분류를 못 한다. `continue`로 두면 분류가
+            # 없던 때와 같은 흐름이 되고, 칩을 넘긴 턴은 분류를 아예 건너뛴다.
+            # 분류 자체의 판단은 `test_classify.py`에서 따로 때린다.
+            "classify": "continue",
             "onboard": json.dumps({"role": "백엔드 엔지니어", "period": "2026 상반기"}),
             "analyze": json.dumps([ACHIEVEMENT], ensure_ascii=False),
             "interview": "그 수치는 어떻게 측정했나요?",

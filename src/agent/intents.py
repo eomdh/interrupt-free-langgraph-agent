@@ -17,6 +17,17 @@ Intent = Literal[
     "continue",  # 의도가 불분명하다 — 진행 단계에 맡긴다
 ]
 
+#: 분류가 고를 수 있는 라벨 전부. 서로 부분 문자열이 아니라 골라내기가 안전하다.
+INTENTS: tuple[Intent, ...] = (
+    "provide_info",
+    "set_questions",
+    "write_now",
+    "revise",
+    "proceed",
+    "chitchat",
+    "continue",
+)
+
 Node = Literal[
     "onboard",  # 직무·평가 기간을 받는다
     "analyze",  # 서술에서 성과 조각을 뽑는다

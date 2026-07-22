@@ -94,6 +94,19 @@ async def test_첫_턴은_node에서_시작해_done으로_닫힌다(client):
     assert "done" not in kinds[:-1]  # done 뒤에는 아무것도 없다
 
 
+async def test_내부_단계는_진행으로_안_나간다(client):
+    """`classify`는 어디로 갈지 정하는 내부 단계다.
+
+    내보내면 매 턴 첫머리에 의미 없는 깜빡임이 생기고, 스텝퍼가 매핑할 단계도
+    없다. 순번도 거른 뒤에 매겨서 클라이언트가 보는 seq가 이어진다.
+    """
+    async with client:
+        events = await _stream(client, "t1", "성과 리뷰 써야 해")
+
+    assert "classify" not in [data.get("node") for _, data in events]
+    assert [data["seq"] for event, data in events if event in ("node", "loop")] == [1]
+
+
 async def test_done은_정착된_ThreadView를_싣는다(client):
     """마지막 이벤트가 대화의 현재 모습이다 — 프론트는 이걸로 화면을 그린다."""
     async with client:
