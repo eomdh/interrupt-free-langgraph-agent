@@ -7,6 +7,8 @@
  * 빈 상태·진행 중·오류를 전부 실제로 렌더한다 — 스트리밍 UI 에서 이 셋이
  * 비어 있으면 사용자는 멈춘 화면과 도는 화면을 구분하지 못한다(STYLESEED.md).
  */
+import { useEffect, useRef } from 'react';
+
 import type { Message } from '@/core/types';
 
 interface Props {
@@ -17,6 +19,14 @@ interface Props {
 
 export function Conversation({ messages, streaming, error }: Props) {
   const empty = messages.length === 0 && !streaming && error === null;
+  const endRef = useRef<HTMLDivElement>(null);
+
+  // 새 메시지가 붙으면 따라 내려간다. 안 그러면 턴마다 사용자가 스크롤해야 한다.
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // jsdom 에는 scrollIntoView 가 없다 — 테스트에서 렌더할 때 터지지 않게 둔다.
+    endRef.current?.scrollIntoView?.({ behavior: reduced ? 'auto' : 'smooth', block: 'end' });
+  }, [messages.length, streaming]);
 
   return (
     <div className="flex flex-col gap-3" aria-live="polite">
@@ -26,6 +36,7 @@ export function Conversation({ messages, streaming, error }: Props) {
       ))}
       {streaming && <Thinking />}
       {error !== null && <ErrorNotice detail={error} />}
+      <div ref={endRef} />
     </div>
   );
 }
