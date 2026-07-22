@@ -54,7 +54,7 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 
 ## 상태
 
-끝까지 돈다. 테스트는 백엔드 156개 · 프론트 65개.
+끝까지 돈다. 테스트는 백엔드 190개 · 프론트 65개.
 
 - 동의 게이트 — 에이전트가 사용자를 앞지르지 못한다. 조작된 요청도 상태 게이트를 못 뚫는다
 - 채점 fail-safe — 축이 빠지거나 값이 이상하면 전부 미달로 본다 ("판정 불가 = 미달")
@@ -62,6 +62,7 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 - 무상태 앱 + Postgres 체크포인터 — 재시작해도 대화가 남는다
 - 진행 스트림(SSE) — `POST /threads/{id}/turns/stream`이 노드 전환을 흘린다. 초안 본문은 안 싣는다 (ADR 0006)
 - 진행 스텝퍼 + 채점 패널 — 자율 루프가 도는 게 화면에 보인다. 상태 배지는 아이콘과 라벨을 같이 써서 색 없이도 읽힌다 (ADR 0007)
+- 채점관 평가 — 품질 서사가 통째로 `tag` 판정에 걸려 있는데, 목은 `task` 이름으로 답해서 **프롬프트 문구가 테스트에 안 보인다.** 손으로 라벨한 골든 셋으로 따로 잰다 ([`evals/`](evals/))
 
 UI 는 [StyleSeed](https://github.com/bitjaru/styleseed)의 룰과 toss 스킨을 따른다. 확정값은 [`web/STYLESEED.md`](web/STYLESEED.md)에 잠겨 있다.
 
@@ -73,6 +74,7 @@ UI 는 [StyleSeed](https://github.com/bitjaru/styleseed)의 룰과 toss 스킨�
 uv sync
 uv run pytest -q
 uv run ruff check .
+uv run python -m evals.run --dry-run   # 채점관 평가 — 모델 호출 없이 룰만
 ```
 
 프론트는 `web/`에 있다. dev 서버는 `/threads`·`/health`를 `:8000`으로 프록시하므로, 백엔드를 먼저 띄워두면 같은 오리진처럼 동작한다.
