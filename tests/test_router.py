@@ -60,10 +60,29 @@ def test_재료가_모이면_초안_생성을_제안한다(onboarded):
     assert available_actions(state) == ["write_now"]
 
 
-def test_초안이_나오면_확정과_재작성이_열린다(onboarded):
+def test_통과한_초안이_나오면_확정과_재작성이_열린다(onboarded, passing):
     """이미 초안이 있으면 다시 생성하자는 제안은 안 한다 — 그건 재작성이다."""
-    state = onboarded(achievements=[{"title": "결제 지연 개선"}], draft="초안 본문")
+    state = onboarded(achievements=[{"title": "결제 지연 개선"}], draft="초안 본문", tags=passing)
     assert available_actions(state) == ["proceed", "revise"]
+
+
+def test_허위가_안_걷힌_초안에는_확정을_제안하지_않는다(onboarded, passing):
+    """막힌 초안 아래에 "이대로 확정"이 붙으면 우회가 아니라 유도가 된다.
+
+    재작성은 남긴다 — 사용자가 근거를 채워 복구할 길까지 막을 이유는 없다.
+    """
+    state = onboarded(
+        achievements=[{"title": "결제 지연 개선"}],
+        draft="근거 없는 초안",
+        tags=passing | {"과장허위": False},
+    )
+    assert available_actions(state) == ["revise"]
+
+
+def test_채점_전_초안에는_확정을_제안하지_않는다(onboarded):
+    """턴이 죽어 채점이 안 남은 경우. 판정 불가는 미달로 본다."""
+    state = onboarded(achievements=[{"title": "결제 지연 개선"}], draft="채점 전 초안", tags=None)
+    assert available_actions(state) == ["revise"]
 
 
 @pytest.mark.parametrize(

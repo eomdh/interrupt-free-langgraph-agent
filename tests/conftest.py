@@ -60,7 +60,7 @@ def make_state():
             "achievements": [],
             "draft": None,
             "tags": None,
-            "revise_count": 0,
+            "draft_attempts": 0,
             "client_intent": None,
         }
         state.update(overrides)  # type: ignore[typeddict-item]

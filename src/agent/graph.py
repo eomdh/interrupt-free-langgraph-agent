@@ -56,7 +56,8 @@ def route_after_tag(state: ReviewState) -> str:
     """
     if is_passing_tags(state["tags"]):
         return "deliver"
-    if state["revise_count"] >= MAX_REVISE:
+    # 시도 횟수는 1부터 센다 — 첫 초안 + 재작성 `MAX_REVISE`회가 상한이다.
+    if state["draft_attempts"] > MAX_REVISE:
         return "deliver" if passes_hallucination_gate(state["tags"]) else "blocked"
     return "draft"
 

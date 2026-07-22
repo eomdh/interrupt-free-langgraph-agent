@@ -11,6 +11,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from agent.graph import build_graph
 from agent.intents import AXES
+from agent.router import available_actions
 from agent.state import new_thread_state
 from tests.helpers import last_reply, turn
 
@@ -120,7 +121,7 @@ async def test_채점이_미달이면_상한까지_다시_쓴다(drive, tags_jso
     """정량성만 계속 미달 — 상한에서 미달인 채로 내보낸다(ADR 0003)."""
     state, llm = await drive(tag=tags_json(정량성=False))
 
-    assert state["revise_count"] == 2  # 첫 초안 0 → 재작성 2회
+    assert state["draft_attempts"] == 3  # 첫 초안 + 재작성 2회
     assert len([c for c in llm.calls if c["task"] == "draft"]) == 3
     assert "정량성" in last_reply(state)
 
@@ -132,7 +133,39 @@ async def test_허위가_안_걷히면_초안_대신_막힌다(drive, tags_json)
     reply = last_reply(state)
     assert "내보내지 않았습니다" in reply
     assert "매출 30% 증가" in reply  # 어느 문장이 문제였는지 짚어준다
-    assert state["draft"] not in reply  # 초안 본문은 새어 나가지 않는다
+    assert "결제 지연을 개선했다" not in reply  # 초안 본문은 새어 나가지 않는다
+
+    # 내보내지 않기로 한 것은 **지우는 것까지**다. 남겨두면 다음 턴에 확정
+    # 경로가 열려 버튼 한 번으로 그대로 나간다(ADR 0010).
+    assert state["draft"] is None
+    assert state["tags"]["과장허위"] is False  # 왜 막혔는지는 남긴다
+
+
+async def test_막힌_초안은_다음_턴에도_확정할_수_없다(make_llm, tags_json):
+    """문서로 약속한 것을 실제로 지키는지 — 회귀 테스트(ADR 0010).
+
+    한때 여기가 뚫려 있었다. `blocked`가 초안을 남겨 `has_draft`가 참이 됐고,
+    서버가 "이대로 확정" 버튼까지 내려줬다. 누르면 막았던 초안이 `finalize`로
+    그대로 전달됐다 — 우회가 아니라 유도였다.
+
+    버튼을 안 그리는 것만으로는 부족하다. API를 직접 때려도 막혀야 한다.
+    """
+    llm = make_llm(tag=tags_json(과장허위=False))
+    graph = build_graph(llm, checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "blocked"}}
+
+    await graph.ainvoke(new_thread_state() | turn("리뷰 써야 해"), config)
+    await graph.ainvoke(turn("결제 지연을 줄였어요", intent="provide_info"), config)
+    blocked = await graph.ainvoke(turn("초안 써줘", intent="write_now"), config)
+
+    assert "proceed" not in available_actions(blocked)  # 제안하지 않고
+
+    # 칩을 위조해 직접 보내도 확정되지 않는다.
+    forced = await graph.ainvoke(turn("이대로 확정", intent="proceed"), config)
+    reply = last_reply(forced)
+
+    assert "확정했습니다" not in reply
+    assert "결제 지연을 개선했다" not in reply
 
 
 async def test_채점은_0도_생성은_0점4로_부른다(drive):

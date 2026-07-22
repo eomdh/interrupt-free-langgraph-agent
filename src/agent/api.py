@@ -102,7 +102,10 @@ def create_app(graph=None, lifespan=None, static_dir: Path | None = None) -> Fas
     app.state.graph = graph
 
     def _config(thread_id: str) -> dict:
-        return {"configurable": {"thread_id": thread_id}}
+        # `recursion_limit`은 심층 방어다. 루프 종료는 `MAX_REVISE`가 책임지지만,
+        # 그 논리가 틀리면 LangGraph 기본값(10007)까지 도는 동안 LLM 호출이
+        # 수천 번 나간다 — 한 번의 POST로. 구조적 상한을 여기서도 못 박는다.
+        return {"configurable": {"thread_id": thread_id}, "recursion_limit": 12}
 
     @app.post("/threads/{thread_id}/turns", response_model=ThreadView)
     async def take_turn(thread_id: str, body: TurnRequest, request: Request) -> ThreadView:

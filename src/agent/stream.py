@@ -39,7 +39,7 @@ def project_update(node: str, delta: dict, *, seq: int, attempt: int) -> str:
     `delta["draft"]`는 절대 싣지 않는다. 새 노드가 새 필드를 반환해도 기본이
     '안 내보냄'이라, 누출 경로가 조용히 열리지 않는다(ADR 0005·0006).
 
-    `attempt`는 이번 턴에서 `draft`가 몇 번째로 도는지다. `state["revise_count"]`를
+    `attempt`는 이번 턴에서 `draft`가 몇 번째로 도는지다. `state["draft_attempts"]`를
     그대로 옮기지 않는다 — 그 값은 델타가 아니라 리듀서 뒤에 있어서, 세는 쪽이
     리듀서 로직을 흉내 내야 한다. 스트림에서 `draft` 노드가 나온 횟수가 곧 시도
     횟수라 그걸 센다.

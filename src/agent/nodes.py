@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 from langchain_core.messages import AIMessage, HumanMessage
 
 from agent.intents import AXES, INTENTS, Intent
-from agent.llm import LLM
+from agent.llm import LLM, LLMError
 from agent.state import ReviewState
 
 NodeFn = Callable[[ReviewState], Awaitable[dict]]
@@ -103,14 +103,20 @@ def make_classify(llm: LLM) -> NodeFn:
 
     **액션 칩이 있으면 부르지 않는다.** 사용자가 명시한 것이 분류보다 우선이고,
     호출도 그만큼 아낀다(ADR 0002의 "분류를 건너뛴다"가 이것이다).
+
+    매 턴의 첫 노드라 **재작성 예산을 되돌리는 자리**이기도 하다(ADR 0010).
     """
 
     async def classify(state: ReviewState) -> dict:
+        # 상태 내용에서 "이번 턴의 첫 초안인가"를 유추하면, 그 유추가 틀리는
+        # 순간 카운터가 영영 안 올라 루프가 안 멈춘다. 턴 경계에서 명시적으로.
+        reset: dict = {"draft_attempts": None}
+
         if state["client_intent"] is not None:
-            return {}
+            return reset
 
         raw = await llm.complete(_CLASSIFY.format(text=_last_user_text(state)), task="classify")
-        return {"client_intent": _as_intent(raw)}
+        return reset | {"client_intent": _as_intent(raw)}
 
     return classify
 
@@ -226,7 +232,9 @@ _DRAFT = """아래 재료로 성과 리뷰 초안을 써라.
 
 def make_draft(llm: LLM) -> NodeFn:
     async def draft(state: ReviewState) -> dict:
-        rewriting = bool(state["draft"])
+        # "이번 턴에서 이미 한 번 썼나"로 판단한다. `state["draft"]` 존재 여부로
+        # 보면 지난 턴의 초안까지 재작성으로 세어 예산이 턴을 넘어 샌다(ADR 0010).
+        rewriting = state["draft_attempts"] > 0
         weak = _shortfalls(state["tags"]) if rewriting else []
 
         # 통과한 축은 건드리지 않는다. 전체를 다시 쓰면 통과했던 축이
@@ -244,11 +252,15 @@ def make_draft(llm: LLM) -> NodeFn:
             temperature=0.4,  # 생성은 어휘 다양성이 필요하다
         )
 
-        return {
-            "draft": text.strip(),
-            # 첫 초안은 재작성이 아니다. None으로 카운터를 0으로 되돌린다.
-            "revise_count": 1 if rewriting else None,
-        }
+        body = text.strip()
+        if not body:
+            # 빈 초안을 그대로 상태에 넣으면 안 된다. 파싱 fail-safe가 그걸
+            # "판정 불가 = 미달"로 흡수해 재작성이 계속 돌고, 진짜 장애가
+            # 품질 문제로 위장된다 — `LLMError`가 있는 바로 그 이유다.
+            raise LLMError("'draft' 가 빈 초안을 돌려줬다")
+
+        # 유추하지 않고 무조건 센다. 리셋은 턴 경계(`classify`)가 맡는다.
+        return {"draft": body, "draft_attempts": 1}
 
     return draft
 
@@ -337,7 +349,13 @@ def make_blocked(llm: LLM) -> NodeFn:
             f"{unverified.strip()}\n\n"
             "실제로 있었던 일이라면 구체적으로 알려주세요. 반영해서 다시 쓰겠습니다."
         )
-        return {"messages": [AIMessage(reply)]}
+        # 막은 초안을 상태에 남겨두면 다음 턴에 `has_draft`가 참이 되어 확정
+        # 경로가 열린다 — 그러면 사용자가 버튼 한 번으로 이 초안을 그대로
+        # 받아간다. 내보내지 않기로 한 것은 **지우는 것까지**가 결정이다(ADR 0010).
+        #
+        # `tags`는 남긴다. 어느 축 때문에 막혔는지가 화면의 채점표에 보여야 하고,
+        # 초안이 사라진 이상 그 값으로 열리는 경로도 없다.
+        return {"draft": None, "messages": [AIMessage(reply)]}
 
     return blocked
 

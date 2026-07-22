@@ -75,7 +75,12 @@ def available_actions(state: ReviewState) -> list[Intent]:
     if has_achievements(state) and not has_draft(state):
         actions.append("write_now")
     if has_draft(state):
-        actions += ["proceed", "revise"]
+        # 확정은 채점을 통과한 초안에만 연다. `has_draft`만 보면 허위가 안 걷힌
+        # 초안에도 "이대로 확정" 버튼이 붙고, 그게 화면에서 가장 강조된 주
+        # 동작이 된다 — 우회가 아니라 유도가 된다(ADR 0010).
+        if passes_hallucination_gate(state["tags"]):
+            actions.append("proceed")
+        actions.append("revise")
     return actions
 
 
@@ -133,7 +138,13 @@ def route_from_router(state: ReviewState) -> Node:
         return "draft" if has_achievements(state) else "interview"
 
     if intent == "proceed":
-        return "finalize" if has_draft(state) else _progress(state)
+        # 초안이 있다는 것만으로는 부족하다. 채점을 통과 못 한 초안(허위가 안
+        # 걷혔거나, 턴이 중간에 죽어 채점 자체가 없는 경우)은 확정 대상이 아니다.
+        # 버튼 목록에서 빼는 것만으로는 게이트가 아니다 — API를 직접 때리면
+        # 뚫린다. 게이트는 라우터에 있어야 한다(ADR 0002·0010).
+        if has_draft(state) and passes_hallucination_gate(state["tags"]):
+            return "finalize"
+        return _progress(state)
 
     if intent == "revise":
         return "draft" if has_draft(state) else _progress(state)

@@ -53,8 +53,20 @@ async def test_칩이_있으면_분류하지_않는다(make_state):
     )
     result, llm = await _classify(state, "write_now")
 
-    assert result == {}  # 손대지 않는다
+    assert "client_intent" not in result  # 칩을 덮지 않는다
     assert llm.calls == []  # 부르지도 않는다
+
+
+async def test_매_턴_재작성_예산을_되돌린다(make_state):
+    """`classify`는 매 턴의 첫 노드라 리셋의 자리다(ADR 0010).
+
+    상태 내용에서 "이번 턴의 첫 초안인가"를 유추하면, 모델이 빈 초안을 주는
+    순간 그 유추가 매번 참이 되어 카운터가 영영 안 오르고 루프가 안 멈춘다.
+    """
+    for intent in (None, "write_now"):  # 분류를 타든 칩으로 건너뛰든
+        state = make_state(messages=[HumanMessage("초안 써줘")], client_intent=intent)
+        result, _ = await _classify(state, "write_now")
+        assert result["draft_attempts"] is None  # None = 리셋 신호
 
 
 def test_라벨끼리_서로_부분_문자열이_아니다():
