@@ -16,6 +16,8 @@ POST #3  START → router → draft ⇄ tag → AIMessage(초안)               
 docker compose up --build          # app + postgres
 ```
 
+브라우저에서 **`localhost:8000`**. 프론트가 같은 이미지 안에서 빌드돼 함께 담기므로 명령은 이것 하나다. 초안을 요청하면 `draft ⇄ tag` 루프가 도는 게 스텝퍼에서 보이고, 5축 채점이 실시간으로 채워진다.
+
 `interrupt()`를 안 쓴 값어치는 **앱을 죽여보면** 드러난다.
 
 ```bash
@@ -50,15 +52,16 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 
 ## 상태
 
-백엔드는 끝까지 돈다. 테스트 96개.
+끝까지 돈다. 테스트는 백엔드 98개 · 프론트 56개.
 
 - 동의 게이트 — 에이전트가 사용자를 앞지르지 못한다. 조작된 요청도 상태 게이트를 못 뚫는다
 - 채점 fail-safe — 축이 빠지거나 값이 이상하면 전부 미달로 본다 ("판정 불가 = 미달")
 - 허위 차단 — 근거를 확인 못 한 초안은 상한에 닿아도 내보내지 않는다. HTTP 응답에도 안 싣는다
 - 무상태 앱 + Postgres 체크포인터 — 재시작해도 대화가 남는다
 - 진행 스트림(SSE) — `POST /threads/{id}/turns/stream`이 노드 전환을 흘린다. 초안 본문은 안 싣는다 (ADR 0006)
+- 진행 스텝퍼 + 채점 패널 — 자율 루프가 도는 게 화면에 보인다. 상태 배지는 아이콘과 라벨을 같이 써서 색 없이도 읽힌다 (ADR 0007)
 
-남은 건 프론트(노드 진행 스텝퍼 + 산출물 패널)뿐이다.
+UI 는 [StyleSeed](https://github.com/bitjaru/styleseed)의 룰과 toss 스킨을 따른다. 확정값은 [`web/STYLESEED.md`](web/STYLESEED.md)에 잠겨 있다.
 
 읽어볼 만한 곳은 [`tests/test_consent_gate.py`](tests/test_consent_gate.py)다. 이 앱이 막으려는 실패가 뭔지 거기 다 있다.
 
@@ -68,6 +71,15 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 uv sync
 uv run pytest -q
 uv run ruff check .
+```
+
+프론트는 `web/`에 있다. dev 서버는 `/threads`·`/health`를 `:8000`으로 프록시하므로, 백엔드를 먼저 띄워두면 같은 오리진처럼 동작한다.
+
+```bash
+pnpm --dir web install
+pnpm --dir web dev        # :5173
+pnpm --dir web test       # vitest
+pnpm --dir web typecheck
 ```
 
 ## License
