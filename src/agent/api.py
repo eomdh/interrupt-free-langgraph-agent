@@ -9,10 +9,12 @@
 """
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
@@ -84,7 +86,7 @@ async def _seeded_payload(graph, config: dict, body: TurnRequest) -> dict:
     return payload
 
 
-def create_app(graph=None, lifespan=None) -> FastAPI:
+def create_app(graph=None, lifespan=None, static_dir: Path | None = None) -> FastAPI:
     """앱을 만든다.
 
     그래프를 인자로 받으면 그대로 쓰고(테스트), 없으면 `lifespan`이 기동 시
@@ -148,5 +150,15 @@ def create_app(graph=None, lifespan=None) -> FastAPI:
     @app.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
+
+    # 빌드된 프론트를 같은 오리진에서 서빙한다 — 그래서 CORS 가 없다.
+    #
+    # **마운트는 맨 마지막이어야 한다.** Starlette 는 등록 순서로 매칭하므로,
+    # "/" 를 먼저 걸면 위의 /threads·/health 까지 정적 핸들러가 삼킨다.
+    #
+    # 없으면 그냥 안 붙는다. 개발 중에는 Vite 가 프론트를 서빙하고 이 앱은
+    # API 만 내주면 된다.
+    if static_dir is not None and static_dir.is_dir():
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="web")
 
     return app

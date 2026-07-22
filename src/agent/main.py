@@ -60,4 +60,4 @@ async def lifespan(app: FastAPI):
                 await llm.aclose()
 
 
-app = create_app(lifespan=lifespan)
+app = create_app(lifespan=lifespan, static_dir=settings.web_dist)

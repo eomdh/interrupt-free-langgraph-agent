@@ -1,5 +1,6 @@
 """환경 설정."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import model_validator
@@ -14,6 +15,10 @@ class Settings(BaseSettings):
 
     #: `fake`가 기본이다. 키 없이 클론해서 바로 돌려볼 수 있어야 한다(관리 규약 §8.2).
     llm_mode: Literal["fake", "openai"] = "fake"
+
+    #: 빌드된 프론트가 놓인 자리. 있으면 같은 오리진에서 서빙한다 — 그래서 CORS가 없다.
+    #: 로컬 개발에는 없다. 그때는 Vite가 프론트를 맡고 이 앱은 API만 내준다.
+    web_dist: Path = Path("web-dist")
 
     #: OpenAI 호환 엔드포인트. OpenRouter · Groq · Ollama 전부 여기만 바꾸면 된다.
     openai_base_url: str = "https://openrouter.ai/api/v1"

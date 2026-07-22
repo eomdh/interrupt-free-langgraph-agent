@@ -109,6 +109,34 @@ async def test_빈_입력은_거부한다(client):
     assert response.status_code == 422
 
 
+async def test_정적_마운트가_API_경로를_삼키지_않는다(make_llm, tmp_path):
+    """빌드된 프론트를 같은 오리진에서 서빙한다. 순서가 함정이다.
+
+    Starlette는 등록 순서로 매칭하므로 `"/"` 마운트를 API 라우트보다 먼저 걸면
+    `/threads`·`/health`까지 정적 핸들러가 가로챈다. 그러면 프론트를 붙이는
+    순간 백엔드가 통째로 죽는데, 그게 배포에서야 드러난다.
+    """
+    (tmp_path / "index.html").write_text("<!doctype html><title>셸</title>", encoding="utf-8")
+    app = create_app(build_graph(make_llm(), MemorySaver()), static_dir=tmp_path)
+    client = AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+    async with client:
+        health = await client.get("/health")
+        body = await _turn(client, "t1", "리뷰 써야 해")
+        shell = await client.get("/")
+
+    assert health.json() == {"status": "ok"}  # API가 살아 있고
+    assert body["thread_id"] == "t1"
+    assert "셸" in shell.text  # 프론트도 나온다
+
+
+async def test_프론트가_없으면_마운트하지_않는다(client):
+    """개발 중에는 Vite가 프론트를 맡는다 — 이 앱은 API만 내주면 된다."""
+    async with client:
+        response = await client.get("/")
+    assert response.status_code == 404
+
+
 async def test_모르는_의도는_거부한다(client):
     """`Intent`가 Literal이라 스키마 단계에서 걸린다."""
     async with client:
