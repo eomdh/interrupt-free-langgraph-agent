@@ -109,6 +109,27 @@ async def test_빈_입력은_거부한다(client):
     assert response.status_code == 422
 
 
+async def test_가능한_동의를_함께_내려준다(client):
+    """화면은 이걸 버튼으로 그린다.
+
+    상태에서 유도하므로 **새로고침해도 살아난다.** 스트림에서 어느 노드가
+    돌았는지로 알아내면 복원이 안 되고, 서버 문구를 뒤지면 백엔드 카피에 묶인다.
+    """
+    async with client:
+        body = await _turn(client, "t1", "리뷰 써야 해")
+        assert body["actions"] == []  # 아직 재료가 없다
+
+        body = await _turn(client, "t1", "결제 지연을 줄였어요", intent="provide_info")
+        assert body["actions"] == ["write_now"]
+
+        body = await _turn(client, "t1", "초안 써줘", intent="write_now")
+        assert body["actions"] == ["proceed", "revise"]
+
+        restored = await client.get("/threads/t1")
+
+    assert restored.json()["actions"] == ["proceed", "revise"]
+
+
 async def test_정적_마운트가_API_경로를_삼키지_않는다(make_llm, tmp_path):
     """빌드된 프론트를 같은 오리진에서 서빙한다. 순서가 함정이다.
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from agent.router import route_from_router
+from agent.router import available_actions, route_from_router
 
 
 def test_온보딩_전에는_무슨_의도가_와도_onboard(make_state):
@@ -49,3 +49,38 @@ def test_revise는_초안이_있을_때만_draft로_되돌린다(onboarded):
 def test_초안이_없는데_revise면_draft로_가지_않는다(onboarded):
     state = onboarded(client_intent="revise", draft=None)
     assert route_from_router(state) != "draft"
+
+
+def test_온보딩_전에는_누를_수_있는_동의가_없다(make_state):
+    assert available_actions(make_state()) == []
+
+
+def test_재료가_모이면_초안_생성을_제안한다(onboarded):
+    state = onboarded(achievements=[{"title": "결제 지연 개선"}])
+    assert available_actions(state) == ["write_now"]
+
+
+def test_초안이_나오면_확정과_재작성이_열린다(onboarded):
+    """이미 초안이 있으면 다시 생성하자는 제안은 안 한다 — 그건 재작성이다."""
+    state = onboarded(achievements=[{"title": "결제 지연 개선"}], draft="초안 본문")
+    assert available_actions(state) == ["proceed", "revise"]
+
+
+@pytest.mark.parametrize(
+    "state_kwargs",
+    [
+        {"achievements": [{"title": "결제 지연 개선"}]},
+        {"achievements": [{"title": "결제 지연 개선"}], "draft": "초안 본문"},
+    ],
+)
+def test_제안한_동의는_라우터가_실제로_받아준다(onboarded, state_kwargs):
+    """눌러도 아무 일이 없는 버튼이 생기면 안 된다.
+
+    화면이 제안하는 것과 서버가 허용하는 것이 갈라지는 순간 사용자는 앱을
+    못 믿는다. 그래서 제안은 라우터가 보는 게이트에서 유도한다.
+    """
+    state = onboarded(**state_kwargs)
+
+    for intent in available_actions(state):
+        target = route_from_router({**state, "client_intent": intent})
+        assert target in ("draft", "finalize"), f"{intent} → {target}"

@@ -1,5 +1,6 @@
 import { useAgent } from '@/api/useAgent';
 import { useThreadId } from '@/lib/useThreadId';
+import { ActionButtons } from '@/ui/ActionButtons';
 import { ArtifactPanel } from '@/ui/ArtifactPanel';
 import { Composer } from '@/ui/Composer';
 import { Conversation } from '@/ui/Conversation';
@@ -37,8 +38,9 @@ export default function App() {
 
           {/* 대화가 길어져도 입력창은 화면에 남는다. 채팅에서 매 턴 스크롤해
               내려가야 하면 그것만으로 못 쓸 물건이 된다. */}
-          <div className="sticky bottom-0 -mx-1 bg-canvas px-1 pb-2 pt-2">
-            <Composer onSend={send} disabled={state.streaming} />
+          <div className="sticky bottom-0 -mx-1 flex flex-col gap-2 bg-canvas px-1 pb-2 pt-2">
+            <ActionButtons actions={state.actions} onPick={send} disabled={state.streaming} />
+            <Composer onSend={(text) => send(text)} disabled={state.streaming} />
           </div>
         </div>
 

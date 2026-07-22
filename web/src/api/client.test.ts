@@ -52,7 +52,7 @@ function throwingConnect(error: Error): Connect {
 
 const frame = (event: string, data: unknown): Frame => ({ event, data: JSON.stringify(data) });
 
-const doneFrame = frame('done', { thread_id: 't1', messages: [], tags: null });
+const doneFrame = frame('done', { thread_id: 't1', messages: [], tags: null, actions: [] });
 
 async function collect<T>(source: AsyncGenerator<T>): Promise<T[]> {
   const out: T[] = [];
@@ -173,6 +173,7 @@ describe('스레드 읽기', () => {
       thread_id: 't1',
       messages: [{ role: 'user' as const, content: '리뷰 써야 해' }],
       tags: null,
+      actions: [],
     };
     expect(await fetchThread('t1', { fetchFn: fakeFetch(200, view) })).toEqual(view);
   });
@@ -206,7 +207,7 @@ event: node
 data: {"node": "deliver", "seq": 7}
 
 event: done
-data: {"thread_id": "demo", "messages": [{"role": "user", "content": "초안 써줘"}, {"role": "assistant", "content": "2026 상반기에 결제 지연을 개선했다.\\n\\n(아직 약한 부분: 정량성)\\n\\n이대로 확정할까요?"}], "tags": {"구체성": true, "기여도": true, "문제해결": true, "정량성": false, "과장허위": true}}
+data: {"thread_id": "demo", "messages": [{"role": "user", "content": "초안 써줘"}, {"role": "assistant", "content": "2026 상반기에 결제 지연을 개선했다.\\n\\n(아직 약한 부분: 정량성)\\n\\n이대로 확정할까요?"}], "tags": {"구체성": true, "기여도": true, "문제해결": true, "정량성": false, "과장허위": true}, "actions": ["proceed", "revise"]}
 
 `;
 
@@ -239,6 +240,7 @@ data: {"thread_id": "demo", "messages": [{"role": "user", "content": "초안 써
     expect(final.attempt).toBe(3); // MAX_REVISE=2 → 첫 초안 + 재작성 2회
     expect(final.furthest).toBe('deliver');
     expect(final.tags?.정량성).toBe(false);
+    expect(final.actions).toEqual(['proceed', 'revise']); // 초안이 나왔으니 확정·재작성이 열린다
     expect(final.streaming).toBe(false);
     expect(final.error).toBeNull();
     // 초안은 deliver 가 만든 메시지로만 도달한다(ADR 0005).

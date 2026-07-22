@@ -19,6 +19,7 @@ from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
 from agent.intents import Intent
+from agent.router import available_actions
 from agent.state import new_thread_state
 from agent.stream import HIDDEN_NODES, project_update, sse_frame
 
@@ -51,6 +52,10 @@ class ThreadView(BaseModel):
     messages: list[MessageView]
     tags: dict[str, bool] | None = None
 
+    #: 지금 눌러서 의미가 있는 동의 액션. 화면이 이걸 버튼으로 그린다.
+    #: 상태에서 유도하므로 새로고침해도 살아나고, 초안 본문은 여전히 안 실린다.
+    actions: list[Intent] = Field(default_factory=list)
+
 
 def _view(thread_id: str, values: dict) -> ThreadView:
     return ThreadView(
@@ -63,6 +68,7 @@ def _view(thread_id: str, values: dict) -> ThreadView:
             for message in values["messages"]
         ],
         tags=values.get("tags"),
+        actions=available_actions(values),
     )
 
 

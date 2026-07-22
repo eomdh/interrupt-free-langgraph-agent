@@ -58,6 +58,27 @@ def passes_hallucination_gate(tags: dict | None) -> bool:
     return tags.get(HALLUCINATION_AXIS) is True
 
 
+def available_actions(state: ReviewState) -> list[Intent]:
+    """지금 눌러서 의미가 있는 동의 액션.
+
+    화면은 이걸 버튼으로 그린다. **라우터가 전이를 정할 때 보는 게이트를 그대로
+    본다** — 여기서 따로 판단하면 화면이 제안하는 것과 서버가 허용하는 것이
+    갈라지고, 눌러도 아무 일이 없는 버튼이 생긴다.
+
+    상태에서 유도하므로 새로고침해도 그대로 살아난다. 스트림에서 어느 노드가
+    돌았는지로 알아내면 복원이 안 된다(ADR 0001의 값을 깎는다).
+    """
+    if not profile_ok(state):
+        return []
+
+    actions: list[Intent] = []
+    if has_achievements(state) and not has_draft(state):
+        actions.append("write_now")
+    if has_draft(state):
+        actions += ["proceed", "revise"]
+    return actions
+
+
 def resolve_intent(state: ReviewState) -> Intent:
     """이번 턴의 의도를 정한다.
 

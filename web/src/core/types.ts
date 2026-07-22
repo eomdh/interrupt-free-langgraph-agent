@@ -55,6 +55,14 @@ export interface ThreadView {
   thread_id: string;
   messages: Message[];
   tags: Tags | null;
+
+  /**
+   * 지금 눌러서 의미가 있는 동의 액션. 서버가 라우터의 게이트에서 유도해 준다.
+   *
+   * 화면이 스스로 정하지 않는다 — 정하는 순간 제안하는 것과 서버가 허용하는
+   * 것이 갈라져서, 눌러도 아무 일이 없는 버튼이 생긴다.
+   */
+  actions: Intent[];
 }
 
 /** `event: node` — 라우터가 고른 노드가 끝났다. */

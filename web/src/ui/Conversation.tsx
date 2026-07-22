@@ -36,7 +36,10 @@ export function Conversation({ messages, streaming, error }: Props) {
       ))}
       {streaming && <Thinking />}
       {error !== null && <ErrorNotice detail={error} />}
-      <div ref={endRef} />
+      {/* 아래에 sticky 로 붙은 버튼·입력창이 스크롤된 내용을 덮는다.
+          scroll-margin 을 줘서 자동 스크롤이 그만큼 여유를 남기게 한다 —
+          안 그러면 방금 온 메시지의 마지막 줄이 가려진다. */}
+      <div ref={endRef} className="scroll-mb-44" />
     </div>
   );
 }

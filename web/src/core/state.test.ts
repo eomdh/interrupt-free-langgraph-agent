@@ -22,6 +22,7 @@ const view = (over: Partial<ThreadView> = {}): ThreadView => ({
   thread_id: 't1',
   messages: [],
   tags: null,
+  actions: [],
   ...over,
 });
 

@@ -26,7 +26,10 @@ export function useAgent(threadId: string) {
         if (controller.signal.aborted) return;
         // 아직 없는 스레드도 빈 뷰로 하이드레이트한다 — 스레드를 갈아탈 때
         // 지난 대화가 남지 않게 상태를 초기화하는 역할도 겸한다.
-        dispatch({ type: 'hydrate', view: view ?? { thread_id: threadId, messages: [], tags: null } });
+        dispatch({
+          type: 'hydrate',
+          view: view ?? { thread_id: threadId, messages: [], tags: null, actions: [] },
+        });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;

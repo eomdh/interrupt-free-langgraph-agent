@@ -113,7 +113,7 @@ describe('자율 루프', () => {
     // 턴이 끝나면 도는 표시가 걷힌다.
     state = applyEvent(state, {
       type: 'done',
-      data: { thread_id: 'demo', messages: [], tags: scored },
+      data: { thread_id: 'demo', messages: [], tags: scored, actions: ['proceed', 'revise'] },
     });
     rerender(<ProgressStepper state={state} />);
 

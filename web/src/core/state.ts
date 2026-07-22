@@ -7,7 +7,16 @@
  * 불변식: `streaming === false` 이면 활성 표시(`activeNode`·`activePhase`)가 없다.
  * 진행 중일 때만 무언가 도는 것으로 보여야 한다.
  */
-import type { ErrorEvent, LoopEvent, Message, NodeEvent, NodeName, Tags, ThreadView } from './types';
+import type {
+  ErrorEvent,
+  Intent,
+  LoopEvent,
+  Message,
+  NodeEvent,
+  NodeName,
+  Tags,
+  ThreadView,
+} from './types';
 
 /** 화면이 보여주는 큰 단계. 노드보다 굵다 — 스텝퍼 레일이 이 단위다. */
 export type Phase = 'onboard' | 'gather' | 'draft' | 'deliver';
@@ -46,6 +55,8 @@ export interface AgentState {
   messages: Message[];
   /** 정착된 채점. */
   tags: Tags | null;
+  /** 지금 누를 수 있는 동의 액션. 턴이 도는 동안에는 비운다 — 그 사이엔 못 누른다. */
+  actions: Intent[];
 
   /** 이번 턴이 도는 중인가. */
   streaming: boolean;
@@ -67,6 +78,7 @@ export function initialState(threadId: string): AgentState {
     threadId,
     messages: [],
     tags: null,
+    actions: [],
     streaming: false,
     activeNode: null,
     activePhase: null,
@@ -102,11 +114,12 @@ export function applyEvent(state: AgentState, action: AgentAction): AgentState {
       // 초안까지 갔던 것이고, 메시지만 있으면 온보딩까지다. `deliver` 도달 여부는
       // ThreadView 로 판별할 수 없어(초안 본문이 안 온다) 보수적으로 둔다.
       // 서버 문구를 문자열로 뒤져 알아내는 건 백엔드 카피에 묶이는 짓이라 안 한다.
-      const { messages, tags, thread_id } = action.view;
+      const { messages, tags, thread_id, actions } = action.view;
       return {
         ...initialState(thread_id),
         messages,
         tags,
+        actions,
         furthest: tags ? 'draft' : messages.length > 0 ? 'onboard' : null,
       };
     }
@@ -117,6 +130,8 @@ export function applyEvent(state: AgentState, action: AgentAction): AgentState {
       return {
         ...state,
         messages: [...state.messages, { role: 'user', content: action.text }],
+        // 턴이 도는 동안에는 못 누른다 — 지난 제안이 남아 있으면 오해를 부른다.
+        actions: [],
         streaming: true,
         activeNode: null,
         activePhase: null,
@@ -152,6 +167,7 @@ export function applyEvent(state: AgentState, action: AgentAction): AgentState {
         ...state,
         messages: action.data.messages,
         tags: action.data.tags,
+        actions: action.data.actions,
         streaming: false,
         activeNode: null,
         activePhase: null,
