@@ -54,7 +54,7 @@
 }
 
 /* 수동 토글: data-theme 가 OS 미디어쿼리를 이긴다(App 이 <html data-theme> 세팅). */
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --color-accent: #4b93f8;
   --color-accent-hover: #6aa6fa;
   --color-accent-soft: #1b2942;
@@ -73,7 +73,7 @@
   --color-warn: #ffb020;
   --color-warn-soft: #3a2f14;
 }
-:root[data-theme='light'] {
+:root[data-theme="light"] {
   --color-accent: #3182f6;
   --color-accent-hover: #1b64da;
   --color-accent-soft: #e8f1fe;

@@ -40,3 +40,8 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+# 기본값(E4/E7/E9/F)만 두면 CI 에 "Ruff" 스텝이 보여도 실제로 거르는 게 거의 없다.
+# import 정렬(I), 흔한 버그 패턴(B), 낡은 문법(UP), 안 쓰는 인자(ARG)까지 본다.
+select = ["E", "F", "I", "B", "UP", "ARG", "SIM"]

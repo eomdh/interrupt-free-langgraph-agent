@@ -5,12 +5,11 @@
  * 명시되는가, 비정상 종료가 화면을 매달아 두지 않는가. 마지막 한 건은 **실제
  * 백엔드가 뱉은 프레임**을 라이브러리 정식 파서에 통과시켜 리듀서까지 확인한다.
  */
-import { type ConnectSSEOptions, type SSEvent, parseSSE } from 'fetch-sse-client';
+import { type ConnectSSEOptions, parseSSE, type SSEvent } from 'fetch-sse-client';
 import { describe, expect, it } from 'vitest';
-
-import { type Connect, type TurnRequest, fetchThread, streamTurn } from './client';
-import { applyEvent, initialState } from '@/core/state';
 import type { AgentAction } from '@/core/state';
+import { applyEvent, initialState } from '@/core/state';
+import { type Connect, fetchThread, streamTurn, type TurnRequest } from './client';
 
 const BODY: TurnRequest = { text: '초안 써줘', client_intent: 'write_now' };
 
@@ -44,6 +43,7 @@ function fakeConnect(frames: Frame[], spy?: Spy): Connect {
 }
 
 function throwingConnect(error: Error): Connect {
+  // biome-ignore lint/correctness/useYield: 연결 실패를 흉내 내는 목이라 yield 할 것이 없다
   const connect = async function* (): AsyncGenerator<SSEvent> {
     throw error;
   };
@@ -122,10 +122,14 @@ describe('비정상 종료', () => {
 
   it('연결이 실패하면 사유를 알린다', async () => {
     const actions = await collect(
-      streamTurn('t1', BODY, { connect: throwingConnect(new Error('SSE request failed with status 500')) }),
+      streamTurn('t1', BODY, {
+        connect: throwingConnect(new Error('SSE request failed with status 500')),
+      }),
     );
 
-    expect(actions).toEqual([{ type: 'error', data: { detail: 'SSE request failed with status 500' } }]);
+    expect(actions).toEqual([
+      { type: 'error', data: { detail: 'SSE request failed with status 500' } },
+    ]);
   });
 
   it('취소는 오류가 아니다', async () => {
@@ -235,7 +239,14 @@ data: {"thread_id": "demo", "messages": [{"role": "user", "content": "초안 써
     const final = actions.reduce(applyEvent, applyEvent(initialState('demo'), start));
 
     expect(actions.map((a) => a.type)).toEqual([
-      'loop', 'loop', 'loop', 'loop', 'loop', 'loop', 'node', 'done',
+      'loop',
+      'loop',
+      'loop',
+      'loop',
+      'loop',
+      'loop',
+      'node',
+      'done',
     ]);
     expect(final.attempt).toBe(3); // MAX_REVISE=2 → 첫 초안 + 재작성 2회
     expect(final.furthest).toBe('deliver');

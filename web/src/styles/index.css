@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import './theme.css';
+@import "tailwindcss";
+@import "./theme.css";
 
 :root {
   font-family: var(--font-sans);
@@ -41,7 +41,7 @@ body {
 
 /* Tailwind v4 preflight 는 버튼 커서를 default 로 둠 → 활성 클릭요소는 pointer 복원. */
 button:not(:disabled),
-[role='button']:not([aria-disabled='true']),
+[role="button"]:not([aria-disabled="true"]),
 label[for],
 summary,
 select:not(:disabled) {

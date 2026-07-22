@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import contextlib
 from typing import Any, Protocol
 
 import httpx
@@ -134,10 +135,9 @@ class OpenAICompatibleLLM:
         delay = min(self._retry_base_delay * 2**attempt, self._max_retry_delay)
 
         if retry_after:
-            try:
+            # HTTP-date 형식은 안 다룬다 — 파싱이 안 되면 지수 백오프로 떨어진다.
+            with contextlib.suppress(ValueError):
                 delay = min(float(retry_after), self._max_retry_delay)
-            except ValueError:
-                pass  # HTTP-date 형식은 안 다룬다 — 지수 백오프로 떨어진다
 
         await asyncio.sleep(delay)
 

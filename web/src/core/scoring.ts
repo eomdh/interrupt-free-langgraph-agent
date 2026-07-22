@@ -4,7 +4,7 @@
  * 표시 규칙은 `web/STYLESEED.md` 에 잠겨 있다 — lucide 아이콘 + 라벨 + 상태색의
  * 삼중 인코딩이고, **색 단독으로 상태를 구분하지 않는다**(ADR 0007).
  */
-import { HALLUCINATION_AXIS, type Axis, type Tags } from './types';
+import { type Axis, HALLUCINATION_AXIS, type Tags } from './types';
 
 export type AxisStatus = 'pass' | 'warn' | 'block' | 'scoring';
 

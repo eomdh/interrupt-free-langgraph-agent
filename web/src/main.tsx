@@ -5,7 +5,10 @@ import App from './App';
 
 import '@/styles/index.css';
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root');
+if (!root) throw new Error('#root 를 찾을 수 없습니다');
+
+createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>,

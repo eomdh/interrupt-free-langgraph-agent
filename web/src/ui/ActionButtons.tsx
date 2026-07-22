@@ -32,6 +32,7 @@ export function ActionButtons({ actions, onPick, disabled = false }: Props) {
   if (shown.length === 0) return null;
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: fieldset 은 폼 의미라 안 맞는다. 버튼 묶음엔 role=group 이 정확하다
     <div className="flex flex-wrap gap-2" role="group" aria-label="다음 동작">
       {shown.map(({ intent, label }, index) => (
         <button

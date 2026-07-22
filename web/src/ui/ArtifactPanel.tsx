@@ -8,8 +8,9 @@
  * 복사해 붙일 깨끗한 초안 본문을 따로 주려면 백엔드가 전달된 초안만 내려주는
  * 필드를 새로 열어야 한다 — 이번 범위 밖이다.
  */
-import { Scorecard } from './Scorecard';
+
 import { type AgentState, visibleTags } from '@/core/state';
+import { Scorecard } from './Scorecard';
 
 interface Props {
   state: AgentState;

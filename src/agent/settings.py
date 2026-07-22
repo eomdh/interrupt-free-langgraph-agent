@@ -37,7 +37,10 @@ class Settings(BaseSettings):
 
         missing = [
             name
-            for name, value in (("OPENAI_API_KEY", self.openai_api_key), ("LLM_MODEL", self.llm_model))
+            for name, value in (
+                ("OPENAI_API_KEY", self.openai_api_key),
+                ("LLM_MODEL", self.llm_model),
+            )
             if not value
         ]
         if missing:

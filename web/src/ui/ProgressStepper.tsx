@@ -8,7 +8,7 @@
  * 레일은 되감기지 않는다. 잡담(`respond`)하러 가도 진행이 사라지면 안 된다 —
  * 판단은 `core/state` 의 `furthest` 가 갖고 있다.
  */
-import { PHASES, type AgentState, type Phase } from '@/core/state';
+import { type AgentState, PHASES, type Phase } from '@/core/state';
 
 const LABEL: Record<Phase, string> = {
   onboard: '온보딩',

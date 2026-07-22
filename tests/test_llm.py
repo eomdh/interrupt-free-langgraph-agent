@@ -43,7 +43,7 @@ def _counting(*responses: httpx.Response):
 
 
 def _ok(content: str):
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
 
     return handler
@@ -84,7 +84,7 @@ async def test_인증_헤더가_붙는다():
 async def test_실패_응답은_LLMError로_올린다(status):
     """빈 문자열로 삼키면 노드의 fail-safe가 장애를 품질 문제로 위장한다."""
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(status, text="nope")
 
     with pytest.raises(LLMError) as caught:
@@ -99,7 +99,7 @@ async def test_실패_응답은_LLMError로_올린다(status):
     [{}, {"choices": []}, {"choices": [{}]}, {"choices": [{"message": {}}]}],
 )
 async def test_스키마가_다르면_LLMError(payload):
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=payload)
 
     with pytest.raises(LLMError):
@@ -107,7 +107,7 @@ async def test_스키마가_다르면_LLMError(payload):
 
 
 async def test_네트워크_오류도_LLMError로_감싼다():
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("연결 실패")
 
     with pytest.raises(LLMError):
@@ -117,7 +117,7 @@ async def test_네트워크_오류도_LLMError로_감싼다():
 async def test_JSON이_아니면_LLMError():
     """프록시가 HTML 오류 페이지를 200으로 주기도 한다."""
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text="<html>502 Bad Gateway</html>")
 
     with pytest.raises(LLMError, match="JSON"):
@@ -139,7 +139,7 @@ async def test_일시적_실패는_다시_시도한다(status):
 async def test_네트워크_오류도_다시_시도한다():
     calls: list[int] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         calls.append(1)
         if len(calls) == 1:
             raise httpx.ConnectError("일시적 끊김")

@@ -118,7 +118,7 @@ async def test_done은_정착된_ThreadView를_싣는다(client):
     assert [m["role"] for m in data["messages"]] == ["user", "assistant"]
 
 
-async def test_스트림과_JSON은_같은_결과에_이른다(client, make_llm):
+async def test_스트림과_JSON은_같은_결과에_이른다(client):
     """같은 입력이면 `done`의 ThreadView == JSON 응답. 스트림이 진실과 갈라지면 안 된다."""
     async with client:
         streamed = await _run_to_draft(_stream, client, "s")

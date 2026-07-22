@@ -7,10 +7,9 @@
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-
-import { ProgressStepper } from './ProgressStepper';
 import { type AgentState, applyEvent, initialState } from '@/core/state';
 import type { Tags } from '@/core/types';
+import { ProgressStepper } from './ProgressStepper';
 
 afterEach(cleanup);
 
@@ -55,7 +54,9 @@ describe('단계 표시', () => {
   it('잡담 중에는 어떤 단계도 도는 중이 아니다', () => {
     // respond 는 단계를 안 올리므로 activePhase 가 null 이다.
     render(
-      <ProgressStepper state={stateWith({ streaming: true, activePhase: null, furthest: 'gather' })} />,
+      <ProgressStepper
+        state={stateWith({ streaming: true, activePhase: null, furthest: 'gather' })}
+      />,
     );
 
     expect(document.querySelector('[data-state="active"]')).toBeNull();
@@ -124,9 +125,7 @@ describe('자율 루프', () => {
 
   it('루프가 아닐 때는 재작성 표시가 없다', () => {
     render(
-      <ProgressStepper
-        state={stateWith({ streaming: false, furthest: 'deliver', attempt: 3 })}
-      />,
+      <ProgressStepper state={stateWith({ streaming: false, furthest: 'deliver', attempt: 3 })} />,
     );
 
     expect(screen.queryByText(/재작성/)).toBeNull();

@@ -174,7 +174,9 @@ def make_onboard(llm: LLM) -> NodeFn:
                 profile[key] = found[key]
 
         missing = [
-            label for key, label in (("role", "직무"), ("period", "평가 기간")) if not profile.get(key)
+            label
+            for key, label in (("role", "직무"), ("period", "평가 기간"))
+            if not profile.get(key)
         ]
         if missing:
             reply = f"{' · '.join(missing)}를 알려주세요."
@@ -233,7 +235,7 @@ def make_interview(llm: LLM) -> NodeFn:
     return interview
 
 
-def make_propose_draft(llm: LLM) -> NodeFn:
+def make_propose_draft(_llm: LLM) -> NodeFn:
     """초안을 쓰자고 제안만 한다. 여기서 넘어가지 않는다(ADR 0002).
 
     LLM을 쓰지 않는다. 동의를 구하는 문구는 매번 같아야 사용자가 같은
@@ -334,7 +336,8 @@ _TAG = """아래 초안을 5축으로 채점하라. **true = 통과, false = 미
 - 과장허위: **초안의 모든 문장이 입력 성과로 뒷받침된다**
   (입력에 없는 내용이 하나라도 있으면 false)
 
-JSON 객체로만 답하라. 예: {{"구체성": true, "기여도": true, "문제해결": true, "정량성": false, "과장허위": true}}
+JSON 객체로만 답하라.
+예: {{"구체성": true, "기여도": true, "문제해결": true, "정량성": false, "과장허위": true}}
 
 입력 성과: {achievements}
 
@@ -376,7 +379,7 @@ def make_tag(llm: LLM) -> NodeFn:
     return tag
 
 
-def make_deliver(llm: LLM) -> NodeFn:
+def make_deliver(_llm: LLM) -> NodeFn:
     """채점을 통과한 초안을 내보낸다.
 
     `draft`가 직접 안 내보내는 이유 — 채점 전에 보여주면 허위가 걸린 초안도
@@ -392,7 +395,7 @@ def make_deliver(llm: LLM) -> NodeFn:
     return deliver
 
 
-def make_finalize(llm: LLM) -> NodeFn:
+def make_finalize(_llm: LLM) -> NodeFn:
     async def finalize(state: ReviewState) -> dict:
         return {"messages": [AIMessage(f"확정했습니다.\n\n{state['draft']}")]}
 

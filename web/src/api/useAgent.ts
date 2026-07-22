@@ -4,10 +4,9 @@
  * 여기 남은 것은 React 수명주기(마운트 복원·취소·중복 전송 방지)뿐이다.
  */
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-
-import { fetchThread, streamTurn } from './client';
 import { applyEvent, initialState } from '@/core/state';
 import type { Intent } from '@/core/types';
+import { fetchThread, streamTurn } from './client';
 
 export function useAgent(threadId: string) {
   const [state, dispatch] = useReducer(applyEvent, threadId, initialState);
@@ -42,8 +41,11 @@ export function useAgent(threadId: string) {
     return () => controller.abort();
   }, [threadId]);
 
-  // 언마운트 시 진행 중인 턴을 끊는다.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // 언마운트뿐 아니라 **스레드가 바뀔 때도** 진행 중인 턴을 끊는다.
+  // deps 가 비어 있으면 언마운트에서만 끊겨서, 이전 스레드의 `done` 이 뒤늦게
+  // 도착해 새 스레드 화면을 덮는다 — 대화도 액션 버튼도 남의 것이 뜬다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 본문이 안 읽지만 정리를 유발하는 트리거다 (useAgent.test 가 증명)
+  useEffect(() => () => abortRef.current?.abort(), [threadId]);
 
   const send = useCallback(
     async (text: string, intent: Intent | null = null) => {
@@ -55,7 +57,11 @@ export function useAgent(threadId: string) {
 
       dispatch({ type: 'turnStart', text });
       try {
-        const turn = streamTurn(threadId, { text, client_intent: intent }, { signal: controller.signal });
+        const turn = streamTurn(
+          threadId,
+          { text, client_intent: intent },
+          { signal: controller.signal },
+        );
         for await (const action of turn) {
           if (controller.signal.aborted) return;
           dispatch(action);

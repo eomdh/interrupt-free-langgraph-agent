@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { applyEvent, initialState, visibleTags, type AgentState } from './state';
+import { type AgentState, applyEvent, initialState, visibleTags } from './state';
 import type { Tags, ThreadView } from './types';
 
 const passing = (over: Partial<Tags> = {}): Tags => ({

@@ -54,7 +54,7 @@ LangGraph 표준은 `interrupt()`로 그래프를 멈추고 `Command(resume)`로
 
 ## 상태
 
-끝까지 돈다. 테스트는 백엔드 142개 · 프론트 60개.
+끝까지 돈다. 테스트는 백엔드 156개 · 프론트 65개.
 
 - 동의 게이트 — 에이전트가 사용자를 앞지르지 못한다. 조작된 요청도 상태 게이트를 못 뚫는다
 - 채점 fail-safe — 축이 빠지거나 값이 이상하면 전부 미달로 본다 ("판정 불가 = 미달")
@@ -82,6 +82,7 @@ pnpm --dir web install
 pnpm --dir web dev        # :5173
 pnpm --dir web test       # vitest
 pnpm --dir web typecheck
+pnpm --dir web lint       # biome
 ```
 
 ## License

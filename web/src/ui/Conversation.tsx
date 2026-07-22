@@ -22,6 +22,7 @@ export function Conversation({ messages, streaming, error }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
 
   // 새 메시지가 붙으면 따라 내려간다. 안 그러면 턴마다 사용자가 스크롤해야 한다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 본문이 안 읽는 값이지만 스크롤을 유발하는 트리거다
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // jsdom 에는 scrollIntoView 가 없다 — 테스트에서 렌더할 때 터지지 않게 둔다.
@@ -32,6 +33,7 @@ export function Conversation({ messages, streaming, error }: Props) {
     <div className="flex flex-col gap-3" aria-live="polite">
       {empty && <EmptyState />}
       {messages.map((message, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: 서버가 id 를 안 준다. 목록은 append-only 이고 done 이 통째로 갈아끼운다
         <Bubble key={index} message={message} />
       ))}
       {streaming && <Thinking />}

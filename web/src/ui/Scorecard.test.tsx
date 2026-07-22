@@ -7,9 +7,8 @@
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-
-import { Scorecard } from './Scorecard';
 import { AXES, type Tags } from '@/core/types';
+import { Scorecard } from './Scorecard';
 
 afterEach(cleanup);
 
