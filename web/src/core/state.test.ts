@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { applyEvent, initialState, type AgentState } from './state';
+import { applyEvent, initialState, visibleTags, type AgentState } from './state';
 import type { Tags, ThreadView } from './types';
 
 const passing = (over: Partial<Tags> = {}): Tags => ({
@@ -183,6 +183,27 @@ describe('새로고침 복원 (ADR 0001)', () => {
 
     expect(withMessages.furthest).toBe('onboard');
     expect(empty.furthest).toBeNull();
+  });
+});
+
+describe('화면이 쓸 채점', () => {
+  it('루프 중에는 흘러온 값을, 끝나면 정착값을 쓴다', () => {
+    const live = passing({ 정량성: false });
+    const settled = passing();
+
+    const looping = run(
+      initialState('t1'),
+      { type: 'turnStart', text: '초안 써줘' },
+      { type: 'loop', data: { node: 'tag', seq: 2, attempt: 1, tags: live } },
+    );
+    expect(visibleTags(looping)).toEqual(live);
+
+    const done = applyEvent(looping, { type: 'done', data: view({ tags: settled }) });
+    expect(visibleTags(done)).toEqual(settled); // liveTags 가 비워져 정착값으로 수렴
+  });
+
+  it('아무것도 없으면 null — 채점 전이라는 뜻', () => {
+    expect(visibleTags(initialState('t1'))).toBeNull();
   });
 });
 

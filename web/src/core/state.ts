@@ -77,6 +77,16 @@ export function initialState(threadId: string): AgentState {
   };
 }
 
+/**
+ * 화면이 보여줄 채점.
+ *
+ * 루프가 도는 동안에는 흘러온 값을, 턴이 끝나면 정착값을 쓴다. 덕분에 채점표가
+ * 재작성 중에도 살아 움직이고, `done` 이후엔 서버가 정한 값으로 수렴한다.
+ */
+export function visibleTags(state: AgentState): Tags | null {
+  return state.liveTags ?? state.tags;
+}
+
 export type AgentAction =
   | { type: 'hydrate'; view: ThreadView }
   | { type: 'turnStart'; text: string }
