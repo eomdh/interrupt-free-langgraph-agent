@@ -5,6 +5,8 @@
 아무것도 안 들고 있어야 GET이 저장소만 보고 대화를 복원할 수 있다.
 """
 
+import asyncio
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from langgraph.checkpoint.memory import MemorySaver
@@ -107,6 +109,27 @@ async def test_빈_입력은_거부한다(client):
     async with client:
         response = await client.post("/threads/t1/turns", json={"text": ""})
     assert response.status_code == 422
+
+
+async def test_같은_스레드의_동시_턴은_직렬화된다(client):
+    """`_seeded_payload`의 조회와 실행 사이가 TOCTOU다.
+
+    직렬화하지 않으면 두 요청이 서로의 턴을 덮어 **어시스턴트 응답 하나가 통째로
+    사라진다.** 이론이 아니라 같은 브라우저의 두 탭이면 재현된다 — 프론트의
+    중복 전송 차단은 컴포넌트 단위라 탭 사이를 못 막는다.
+    """
+    async with client:
+        await _turn(client, "t1", "리뷰 써야 해")
+
+        await asyncio.gather(
+            _turn(client, "t1", "결제 지연을 줄였어요", intent="provide_info"),
+            _turn(client, "t1", "장애 대응도 했어요", intent="provide_info"),
+        )
+
+        restored = (await client.get("/threads/t1")).json()
+
+    # 턴 3개 → user·assistant가 번갈아 3쌍. 하나도 안 사라진다.
+    assert [m["role"] for m in restored["messages"]] == ["user", "assistant"] * 3
 
 
 async def test_가능한_동의를_함께_내려준다(client):

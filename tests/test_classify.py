@@ -76,6 +76,18 @@ def test_라벨끼리_서로_부분_문자열이_아니다():
         assert not any(intent in other for other in others)
 
 
-def test_먼저_나온_라벨을_고른다():
-    """두 개가 섞여 오면 앞선 것을 고른다 — 결정적이어야 재현이 된다."""
-    assert _as_intent("provide_info 아니면 write_now") == "provide_info"
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "provide_info 아니면 write_now",
+        "revise 를 원하지 않고 proceed 를 원한다",
+        "이 발화는 write_now 가 아니라 provide_info 입니다",
+    ],
+)
+def test_라벨이_둘_이상이면_고르지_않는다(answer):
+    """앞선 것을 집으면 부정문에서 정반대로 분류된다.
+
+    한때 이 동작을 "결정적이라 좋다"며 테스트로 고정해 뒀다 — 회귀 테스트가
+    버그를 잠그고 있었던 셈이다. 무엇을 원하는지 모르겠으면 모른다고 답한다.
+    """
+    assert _as_intent(answer) is None

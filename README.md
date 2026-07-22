@@ -21,12 +21,14 @@ docker compose up --build          # app + postgres
 `interrupt()`를 안 쓴 값어치는 **앱을 죽여보면** 드러난다.
 
 ```bash
-curl -X POST localhost:8000/threads/demo/turns \
+T=$(uuidgen)                       # 스레드 ID 가 곧 접근 권한이다
+
+curl -X POST localhost:8000/threads/$T/turns \
      -H 'content-type: application/json' -d '{"text":"성과 리뷰 써야 해"}'
 
 docker compose restart app         # 프로세스 메모리를 날린다
 
-curl localhost:8000/threads/demo   # 대화가 그대로 있다
+curl localhost:8000/threads/$T     # 대화가 그대로 있다
 ```
 
 복원 코드는 없다. 질문이 특수 상태가 아니라 그냥 `AIMessage`라 체크포인터가 대화를 통째로 들고 있고, 앱은 아무것도 기억하지 않는다.

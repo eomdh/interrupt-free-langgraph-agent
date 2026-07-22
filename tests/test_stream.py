@@ -190,3 +190,9 @@ async def test_실행_중_오류는_error_이벤트로_나온다():
 
     assert any(event == "error" for event, _ in events)
     assert not any(event == "done" for event, _ in events)  # 완주 못 했다
+
+    # 내부 사정은 안 내보낸다. LLMError 는 업스트림 응답 본문을, 체크포인터
+    # 실패는 내부 호스트·DB 사용자를 담는데 여기 인증이 없다. 참조 번호만 준다.
+    detail = next(data["detail"] for event, data in events if event == "error")
+    assert "onboard" not in detail  # 예외 문자열이 그대로 새지 않는다
+    assert "ref:" in detail

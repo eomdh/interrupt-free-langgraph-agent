@@ -3,7 +3,6 @@
 앱은 무상태다. 진행 중인 대화는 전부 체크포인터에 있다(ADR 0001).
 """
 
-import operator
 from typing import Annotated, TypedDict
 
 from langchain_core.messages import AnyMessage
@@ -29,6 +28,17 @@ class Achievement(TypedDict, total=False):
     result: str
 
 
+#: 한 스레드가 들고 갈 성과 상한. 누적된 전체가 매 턴 `interview`·`draft`·
+#: `tag`·`blocked` 프롬프트에 다시 실리므로, 상한이 없으면 토큰 비용이 대화
+#: 길이에 대해 2차로 는다. 넘치면 오래된 것부터 흘린다.
+MAX_ACHIEVEMENTS = 20
+
+
+def add_achievements(current: list[Achievement], update: list[Achievement]) -> list[Achievement]:
+    """성과를 쌓되 상한을 지킨다. `operator.add`와 달리 무한히 자라지 않는다."""
+    return (current + update)[-MAX_ACHIEVEMENTS:]
+
+
 def reset_or_add(current: int, update: int | None) -> int:
     """시도 카운터 reducer. `None`은 값이 아니라 리셋 신호다.
 
@@ -50,7 +60,7 @@ class ReviewState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
 
     profile: Profile
-    achievements: Annotated[list[Achievement], operator.add]
+    achievements: Annotated[list[Achievement], add_achievements]
 
     draft: str | None
     #: 5축 채점 결과. 판정 불가는 미달로 정규화한다(`is_passing_tags`).
