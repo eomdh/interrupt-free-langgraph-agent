@@ -1,0 +1,27 @@
+# 호스트의 설치본이 이미지로 새면 안 된다. node_modules 에는 플랫폼별 네이티브
+# 바이너리(esbuild)가 들어 있어서, 그대로 들어가면 리눅스 이미지에서 깨진다.
+**/node_modules
+**/dist
+**/.venv
+
+# 캐시·산출물
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+htmlcov/
+.coverage
+
+# 비밀·로컬 설정
+.env
+.env.*
+!.env.example
+
+# 도구·메타
+.git
+.github
+**/.DS_Store
+.omc/
+**/.claude/
+**/.styleseed/
