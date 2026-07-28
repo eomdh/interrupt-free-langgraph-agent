@@ -8,7 +8,6 @@ dist/
 
 # venv / uv
 .venv/
-uv.lock
 
 # test / lint caches
 .pytest_cache/
