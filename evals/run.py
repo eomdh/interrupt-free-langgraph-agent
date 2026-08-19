@@ -155,6 +155,60 @@ def report(outcomes: list[CaseOutcome], runs: dict[str, list[Verdict]], model: s
     print()
 
 
+# --- 원본 판정 보관 ---
+#
+# 무료 등급은 하루 호출 수가 막혀 있는데, 라벨을 한 글자 고칠 때마다 다시
+# 돌리면 검토가 유료가 된다. 모델이 뭐라고 했는지는 라벨과 무관하므로 따로
+# 저장해 두고, 라벨을 고친 뒤에는 호출 없이 다시 집계한다.
+
+
+def save_runs(path: str, model: str, repeat: int, records: list[dict]) -> None:
+    payload = {"model": model, "repeat": repeat, "runs": records}
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(payload, fp, ensure_ascii=False, indent=2)
+    print(f"\n원본 판정 {len(records)}건을 {path} 에 저장했다.")
+
+
+def load_runs(path: str) -> tuple[list[CaseOutcome], dict[str, list[Verdict]], str]:
+    """저장된 판정에 **현재** 라벨을 얹어 다시 집계한다. 모델 호출 0회.
+
+    케이스가 사라졌거나 id 가 바뀌었으면 건너뛰고 알린다. 조용히 빼면 표본이
+    줄어든 채로 일치율이 멀쩡해 보인다.
+    """
+    with open(path, encoding="utf-8") as fp:
+        payload = json.load(fp)
+
+    cases = {case.id: case for case in CASES}
+    outcomes: list[CaseOutcome] = []
+    runs: dict[str, list[Verdict]] = {}
+    dropped: set[str] = set()
+
+    for record in payload["runs"]:
+        case = cases.get(record["case_id"])
+        if case is None:
+            dropped.add(record["case_id"])
+            continue
+        actual = normalize(record["actual"])
+        if record["turn"] == 0:
+            outcomes.append(
+                CaseOutcome(
+                    case_id=case.id,
+                    expected=normalize(case.expected),
+                    actual=actual,
+                    model_said=normalize(record["model_said"]),
+                )
+            )
+        runs.setdefault(case.id, []).append(actual)
+
+    if dropped:
+        names = ", ".join(sorted(dropped))
+        print(f"\n저장본에만 있고 지금 셋에 없는 케이스 {len(dropped)}건은 뺐다: {names}")
+    missing = sorted(set(cases) - set(runs))
+    if missing:
+        print(f"저장본에 없는 케이스 {len(missing)}건은 빠졌다: {', '.join(missing)}")
+    return outcomes, runs, payload["model"]
+
+
 # --- 룰만 미리 보기 (모델 없이) ---
 
 
@@ -189,7 +243,16 @@ async def main() -> None:
     parser.add_argument("--limit", type=int, help="앞에서 N건만")
     parser.add_argument("--case", action="append", help="케이스 id (여러 번 지정 가능)")
     parser.add_argument("--dry-run", action="store_true", help="모델 없이 룰만 본다")
+    parser.add_argument("--save", metavar="PATH", help="원본 판정을 JSON 으로 저장")
+    parser.add_argument(
+        "--rescore", metavar="PATH", help="저장본에 현재 라벨을 얹어 재집계 (호출 0회)"
+    )
     args = parser.parse_args()
+
+    if args.rescore:
+        outcomes, runs, model = load_runs(args.rescore)
+        report(outcomes, runs if any(len(v) > 1 for v in runs.values()) else {}, model)
+        return
 
     cases = _select(args.case, args.limit)
     if not cases:
@@ -218,15 +281,35 @@ async def main() -> None:
     try:
         outcomes: list[CaseOutcome] = []
         runs: dict[str, list[Verdict]] = {}
+        records: list[dict] = []
         for case in cases:
             for turn in range(args.repeat):
                 outcome = await run_case(llm, case)
                 if turn == 0:
                     outcomes.append(outcome)  # 성적은 첫 판정으로 낸다
                 runs.setdefault(case.id, []).append(outcome.actual)
+                records.append(
+                    {
+                        "case_id": case.id,
+                        "turn": turn,
+                        "actual": outcome.actual,
+                        "model_said": outcome.model_said,
+                    }
+                )
                 print(f"  · {case.id} ({turn + 1}/{args.repeat})")
     finally:
         await llm.aclose()
+        # 저장은 반드시 finally 에서. 무료 등급은 업스트림이 붐비면 502 로 중간에
+        # 죽는데(실제로 겪었다), 루프 뒤에서 저장하면 그때까지 태운 호출이 통째로
+        # 사라진다. 부분 결과라도 남으면 이어서 채울 수 있다.
+        if args.save and records:
+            save_runs(args.save, settings.llm_model, args.repeat, records)
+
+    if len(records) < planned:
+        print(
+            f"\n주의: {planned}회 예정 중 {len(records)}회만 끝났다. "
+            "아래 집계는 그만큼만 본 것이다."
+        )
 
     report(outcomes, runs if args.repeat > 1 else {}, settings.llm_model)
 
