@@ -146,3 +146,24 @@ def test_허위_케이스와_정상_케이스가_둘_다_있다():
     """한쪽만 있으면 일치율이 높아도 아무 말을 못 한다."""
     labels = {case.expected[HALLUCINATION_AXIS] for case in CASES}
     assert labels == {True, False}
+
+
+def test_축마다_미달_라벨이_충분히_있다():
+    """한 축의 미달 라벨이 한두 건이면 그 축의 일치율은 읽을 수 없다.
+
+    확장 전 `기여도`는 미달이 한 건뿐이었고, 그때의 55%는 "통과 라벨 10건 중
+    다섯에서 헛경보"라는 뜻이라 경계가 어디인지 말해주지 못했다. 비교표의 한 칸
+    차이가 케이스 한 건이기도 했다. 다시 그 상태로 돌아가지 않게 바닥을 박는다.
+    """
+    부족 = {
+        axis: sum(1 for case in CASES if not case.expected[axis])
+        for axis in AXES
+        if sum(1 for case in CASES if not case.expected[axis]) < 4
+    }
+    assert not 부족, f"미달 라벨이 4건 미만인 축: {부족}"
+
+
+def test_어려움_케이스가_과반이_아니다():
+    """사람끼리 갈리는 케이스로 셋을 채우면 낮은 점수가 모델 탓인지 라벨 탓인지 갈린다."""
+    hard = sum(1 for case in CASES if case.hard)
+    assert hard * 2 < len(CASES), f"어려움 {hard}건 / 전체 {len(CASES)}건"
